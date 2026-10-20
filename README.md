@@ -348,3 +348,5 @@ Total  = Prompt + output
 
 The UI computes these values consistently for both architectures instead of
 depending on provider-specific `totalTokens` behavior.
+#   A g e n t i c - A I - i n - A W S  
+ 
