@@ -1,352 +1,305 @@
 # AWS Agentic Blueprint
 
-Reference implementation for comparing two Amazon Bedrock AgentCore agents:
+**One agent, built three ways, measured side by side.**
 
-- A configuration-defined agent using AgentCore Harness.
-- A code-defined Strands agent hosted on AgentCore Runtime.
+This repository is a reference implementation for answering a practical question:
+*should you let AWS run your agent loop, write it yourself, or leave AWS entirely?*
+It builds the same travel/weather agent as:
 
-The supported user interface is a Streamlit application that submits the same
-prompt to both architectures and compares responses, latency, tool activity,
-reasoning events, token usage, and prompt-cache behavior.
+| | Architecture | Who owns the agent loop | Where it runs |
+|---|---|---|---|
+| 🟧 **Managed** | Configuration-defined agent | AWS (AgentCore **Harness**) | Amazon Bedrock AgentCore |
+| 🟦 **Custom** | Code-defined **Strands** agent | This repo ([agents/custom/agent.py](agents/custom/agent.py)) | AgentCore **Runtime** (container) |
+| 🟩 **Open-source** | Same Strands agent, off AWS | This repo ([opensource/agents/custom/](opensource/agents/custom/)) | Docker Compose (FastAPI + Ollama/Kimi) |
 
-## Architecture
+A Streamlit app sends one prompt to the Managed and Custom agents in parallel and
+compares **answers, latency, tool calls, reasoning, token usage, prompt-cache
+behavior, and measured cost**. The open-source stack ships with its own UI and
+uses the same event format and tools.
 
-```text
-                       +--------------------------+
-User -> Streamlit UI ->| Managed agent adapter    |-> AgentCore Harness
-                       +--------------------------+
-                       | Custom agent adapter     |-> AgentCore Runtime
-                       +--------------------------+
+---
+
+## The core idea
+
+### 1. Same tools, same prompt, different hosting
+
+```mermaid
+flowchart LR
+    U([User]) --> UI["Streamlit comparison app<br/>apps/comparison"]
+    U -.-> OUI["Open-source UI<br/>opensource/ui"]
+
+    UI -->|InvokeHarness| H["🟧 Managed agent<br/>AgentCore Harness"]
+    UI -->|InvokeAgentRuntime| R["🟦 Custom agent<br/>Strands on AgentCore Runtime"]
+    OUI -.->|HTTP SSE| O["🟩 Open-source agent<br/>Strands + FastAPI"]
+
+    H --> GW["AgentCore Gateway<br/>(MCP, SigV4)"]
+    R --> GW
+    O -.-> MCP
+
+    GW --> L1["Open-Meteo Lambda"]
+    GW --> L2["Travel-RAG Lambda<br/>search_travel_guides"]
+    GW --> MCP["mcp-tools server<br/>web · maps · bookings"]
+
+    L2 --> KB[("Bedrock Knowledge Base<br/>+ Pinecone")]
 ```
 
-Both backends emit the same application event vocabulary:
+Every path exposes the same functional tool catalog (weather, web search, maps,
+travel-guide retrieval, code interpreter). This *tool parity* is enforced by
+[tests/unit/test_benchmark_tool_parity.py](tests/unit/test_benchmark_tool_parity.py),
+so a comparison measures the architecture, not a difference in tools.
+
+### 2. One event vocabulary for every backend
+
+All agents use the same six events, so the UI never needs to know which backend
+produced them.
 
 ```python
-{"type": "reasoning", "content": "..."}
-{"type": "text", "content": "..."}
+{"type": "reasoning",  "content": "..."}
+{"type": "text",       "content": "..."}
 {"type": "tool_start", "name": "...", "input": {...}}
-{"type": "tool_end", "name": "...", "result": "..."}
-{"type": "metrics", "usage": {...}}
-{"type": "error", "content": "..."}
+{"type": "tool_end",   "name": "...", "result": "..."}
+{"type": "metrics",    "usage": {...}}
+{"type": "error",      "content": "..."}
 ```
 
-## Repository Layout
+```mermaid
+flowchart LR
+    A["Custom agent<br/>emits events as SSE"] --> D
+    B["Harness adapter<br/>translates Converse stream"] --> D
+    D["backends/dispatcher.py"] --> E["services/event_reducer.py"] --> F["UI state → metrics, cost, traces"]
+```
+
+The contract lives in three places that must stay in sync: this README, the
+docstring in [agents/custom/agent.py](agents/custom/agent.py), and the typed models
+in [apps/comparison/models/events.py](apps/comparison/models/events.py).
+
+### 3. Shared model routing
+
+Both AgentCore agents use the same **LiteLLM complexity router**. A small
+classifier (Ministral 3B on Bedrock) scores each prompt and picks a model tier:
+
+```mermaid
+flowchart LR
+    P[Prompt] --> C{"Ministral 3B<br/>classifier"}
+    C -->|SIMPLE| HK["Claude Haiku 4.5<br/>(cheap)"]
+    C -->|MEDIUM / COMPLEX / REASONING| SN["Claude Sonnet 4.6<br/>(strong)"]
+    C -.->|router unavailable| SN
+    C -.->|timeout / bad output| LH["LiteLLM local heuristic"]
+```
+
+The decision is sticky for the whole turn and tool loop, and is recorded with run
+metrics and MLflow trace attributes. The open-source stack uses the same pattern
+with Ollama (simple) and Kimi (harder tiers).
+
+---
+
+## Repository map
 
 ```text
-apps/
-  comparison/
-    app.py                    # Supported Streamlit entrypoint
-    config.py                 # UI/backend environment configuration
-    backends/                 # Harness and Runtime API adapters
-    components/               # Streamlit presentation
-    formatting/               # Trace and metric formatting
-    models/                   # Event and state definitions
-    services/                 # Framework-independent state reduction
-    assets/                   # CSS
+apps/comparison/        Streamlit comparison UI (the main entrypoint)
+  backends/             Harness, Runtime and dispatcher adapters → six events
+  services/             Event reducer, cost, routing, uploads, feedback, security
+  components/           Streamlit views (comparison, history, metrics, AWS CLI)
+  models/               Typed event and state definitions
 
 agents/
-  managed/
-    system-prompt.md          # Harness-defined agent instructions
-  custom/
-    agent.py                  # Code-defined Strands agent
-    mcp_client/               # SigV4 MCP Gateway transport
-    prompts/                  # Custom-agent system prompt
-    requirements.txt          # AgentCore Runtime build dependencies
+  managed/              System prompt for the Harness-defined agent
+  custom/               Strands agent + SigV4 MCP Gateway client (Runtime container)
+
+opensource/             The same stack without AWS
+  agents/custom/        FastAPI SSE agent, guardrails, skills, code interpreter
+  mcp-tools/            MCP server: Open-Meteo, web search, OpenStreetMap, travel guides
+  ui/                   Open-source Streamlit UI
+  compose/              Docker Compose: agent, UI, Ollama, Qdrant, MLflow, OTel
 
 infrastructure/
-  gateway/
-    deploy.py                 # Legacy boto3 provisioning script
-    open_meteo_lambda.py      # Open-Meteo tool Lambda
-  pulumi/
-    gateway/                  # AgentCore Gateway, target, Lambda, IAM
-    managed_agent/            # AgentCore Harness configuration
-    custom_agent/             # AgentCore Runtime and image configuration
+  pulumi/               IaC source of truth: gateway, managed_agent, custom_agent, mcp_tools
+  gateway/              Tool Lambdas (Open-Meteo, travel RAG) + legacy boto3 script
+  scripts/              Smoke tests and registry helpers
 
-tests/
-  manual/
-    check_thinking_events.py  # Live AWS reasoning diagnostic
-
-docs/                         # Architecture and demo documentation
-requirements.txt              # Local development dependencies
-uv.lock                       # Reproducible Python dependency lock
+scripts/                RAG & GraphRAG pipelines (Wikivoyage, DATAtourisme, Pinecone,
+                        OpenSearch, Neptune, Neo4j, Qdrant) and their evaluators
+evaluations/            AgentCore Evaluations, MLflow scorecards, router datasets
+tests/unit/             Offline tests      tests/manual/  Live AWS diagnostics
+explanation/            Beginner-friendly guided tour of the codebase
+docs/                   Architecture guides: agentic patterns, caching, inference, RAG
 ```
 
-## Run The Comparison App
+---
 
-Install local dependencies and provide valid AWS credentials:
+## Quick start
+
+### Option A — AWS comparison app
+
+> ⚠️ The lock file targets Python 3.12, but this checkout is missing the
+> `pyproject.toml` that `uv.lock` and `requirements.txt` refer to. Restore it
+> before installing; `uv sync --dev` cannot bootstrap the repo as-is.
 
 ```bash
 uv sync --dev
-uv run streamlit run apps/comparison/app.py \
-  --server.fileWatcherType=none
+cp .env.example .env      # set ACTOR_ID, HARNESS_REGION, HARNESS_ARN, RUNTIME_REGION, RUNTIME_ARN
+aws sso login             # valid AWS credentials are required
+uv run streamlit run apps/comparison/app.py --server.fileWatcherType=none
 ```
 
-The explicit watcher setting is intentional. Streamlit's module-path watcher
-probes lazily imported submodules, which is unsafe for some optional
-dependencies. Passing the setting on the command line also works when the app is
-started outside the repository root. The `llmrouter` extra is no longer needed to
-run the app; it is only required by the archived learned-router experiment in
-[`evaluations/llmrouter/`](evaluations/llmrouter/README.md).
+`--server.fileWatcherType=none` is intentional: Streamlit's module watcher probes
+lazily imported submodules, which breaks some optional dependencies.
 
-The UI navigation has separate **Comparison** and **Custom agent** pages. The
-Comparison page invokes Managed and Custom agents side by side; the Custom agent
-page invokes only the repository-owned AgentCore Runtime. Each page keeps its own
-conversation tree and active run.
-
-A running comparison can be abandoned with **Stop comparison**. Stopping closes
-both response streams immediately and calls `StopRuntimeSession` to terminate
-the Custom agent's Runtime session server-side, so the identity running the UI
-needs `bedrock-agentcore:StopRuntimeSession` on the runtime ARN in addition to
-`bedrock-agentcore:InvokeAgentRuntime`. `InvokeHarness` has no equivalent stop
-operation, so the Managed agent is cancelled client-side only and may keep
-billing until its turn ends. Whatever streamed before the stop is kept in
-history; token usage that never arrived is shown as **pending** rather than
-zero, and the sidebar's *Refresh session cost* resolves it from the Custom
-agent's logs once they land.
-
-Completed runs form a conversation tree rather than a flat transcript. A new
-prompt continues from the currently selected node, while **Edit and resubmit**
-creates a sibling branch and keeps the original path intact. Each architecture
-receives only its own bounded answers from the selected ancestor path; new
-AgentCore session IDs are still used for every node so cost and CloudWatch
-usage remain attributable to the correct run.
-
-Each completed Managed and Custom answer also has a thumbs-up/down control.
-Ratings are upserted by chat ledger, run, and architecture into the
-`agent_feedback` SQLite table, together with the prompt, rendered answer,
-session ID, and branch metadata. It uses `SESSION_COST_DB_PATH` by default;
-set `FEEDBACK_DB_PATH` to keep ratings in a separate database file.
-
-The comparison prompt accepts one UTF-8 CSV or mmCIF (`.cif`) file up to 1 MB.
-The UI stages it as an encrypted, short-lived S3 object, gives both
-architectures the same presigned read URL, and removes the object after the
-run. Each agent uses its code interpreter for tabular or molecular-structure
-analysis; compact chart results are rendered as interactive Vega-Lite
-visualizations in the UI. Uploaded mmCIF structures are also previewed in an
-interactive Mol* 3D viewer before analysis. Residue clicks return through a
-bidirectional Streamlit component, are validated in Python, and can be included
-with the next prompt without replacing the existing agent SSE transport. After
-an mmCIF run, a dedicated dashboard places the Managed agent's analysis beside
-its validated, agent-directed 3D view; if no usable filter is returned, the
-dashboard keeps the analysis visible and falls back to the full structure.
-
-The comparison sidebar also contains an **AWS read-only console** for inspecting
-the exact AgentCore, CloudWatch, and CloudWatch Logs resources behind the cost
-figures. It executes AWS CLI commands with the UI backend identity, never inside
-the Harness interpreter, and accepts only an explicit read-operation allowlist.
-Set `ENABLE_AWS_CLI_CONSOLE=false` to hide it. The AWS CLI must be installed in
-the environment that runs Streamlit.
-
-Model routing is shared by both AgentCore architectures. **Auto** uses LiteLLM's
-`auto_router/complexity_router` in route-only mode: Ministral 3B classifies the
-prompt through Amazon Bedrock, and LiteLLM maps the resulting
-`SIMPLE`/`MEDIUM`/`COMPLEX`/`REASONING` tier to Claude Haiku 4.5 or Claude Sonnet
-4.6. Only `SIMPLE` goes to Haiku by default. Every request in **Auto**, including
-file analysis, extended thinking, and long contexts, is scored the same way.
-**Economy** and **Quality** are explicit user overrides for evaluation. A routing
-decision is sticky for the complete agent turn and tool loop, and the selected
-model plus reason are recorded with run metrics. An unavailable router or a model
-group outside the configured allowlist fails safely to Sonnet. A failed,
-timed-out, or malformed classifier response falls back to LiteLLM's local
-heuristic scorer.
-
-When the custom Runtime's MLflow OTLP mirror is enabled, each root trace also
-records the routing mode, router name/version, predicted candidate, outcome,
-fallback status, selected model, and decision latency as
-`agent.model.router.*` / `agent.model.selected_*` span attributes. Router version
-defaults to the installed LiteLLM version; set `MODEL_ROUTER_VERSION` to pin a
-policy version so decisions remain attributable across LiteLLM upgrades.
-
-The tier policy and score boundaries are optional JSON overrides:
-`COMPLEXITY_TIERS` accepts only the `cheap` and `strong` model groups (unset
-keeps `SIMPLE=cheap` with every stronger tier on `strong`), and
-`COMPLEXITY_TIER_BOUNDARIES` overrides LiteLLM's `simple_medium` 0.15,
-`medium_complex` 0.35, and `complex_reasoning` 0.60 defaults. Configure the
-Bedrock models with `BEDROCK_CHEAP_MODEL_ID`, `BEDROCK_STRONG_MODEL_ID`, and,
-when the Harness needs a different regional ID, `HARNESS_CHEAP_MODEL_ID`.
-The classifier defaults to `mistral.ministral-3-3b-instruct` in `eu-west-1`
-with a 750 ms timeout; configure it with `MODEL_ROUTER_CLASSIFIER_MODEL_ID`,
-`MODEL_ROUTER_CLASSIFIER_REGION`, and `MODEL_ROUTER_CLASSIFIER_TIMEOUT_MS`.
-Its Ireland input/output rates default to $0.12 per million tokens through
-`MODEL_ROUTER_CLASSIFIER_INPUT_PER_MTOK` and
-`MODEL_ROUTER_CLASSIFIER_OUTPUT_PER_MTOK`. The app uses LiteLLM's bundled model
-map by default rather than waiting on an optional network refresh.
-`MODEL_ROUTING_MODE` sets the non-UI default. LiteLLM router internals are
-version-sensitive, so re-check the scorer when upgrading LiteLLM.
-
-A reproducible 7,212-query cold-start corpus for the Travel Agent, Protein
-Analysis, and general routing boundaries is provided in
-[`evaluations/llmrouter/`](evaluations/llmrouter/README.md). Its checked-in
-scores are explicitly marked policy bootstrap utilities, not measured model
-quality. The same tooling builds Longformer embeddings and converts repeated
-Haiku/Sonnet evaluations into production-grade routing records. That corpus and
-the `llmrouter` extra now back only the learned route-only experiment
-([`apps/comparison/services/llmrouter_adapter.py`](apps/comparison/services/llmrouter_adapter.py));
-they are no longer on the application's routing path.
-
-Configuration can be supplied through environment variables. See
-`.env.example` for the supported application settings.
-
-If the application reports expired AWS credentials, refresh the SSO session
-before retrying:
+### Option B — Open-source stack (no AWS)
 
 ```bash
-aws sso login
+cd opensource/compose
+cp .env.example .env      # set KIMI_API_KEY
+docker compose up -d --build
+docker compose exec ollama ollama pull qwen3:1.7b
 ```
 
-## Deploy The Custom Agent
+Open http://localhost:8501 (UI) and http://localhost:5000 (MLflow traces).
+See [opensource/compose/README.md](opensource/compose/README.md) for services,
+provider pinning, and guardrails.
 
-The custom agent source is self-contained under `agents/custom/`. AgentCore
-Runtime is the AWS hosting service; the folder contains the agent code deployed
-to that service. Run AgentCore deployment commands from this directory so its
-`requirements.txt`, prompt, and MCP client are included in the build context.
+---
 
-## Provision The Gateway
+## Deploying to AWS
 
-Pulumi is the deployment source of truth. The original boto3 script remains
-available only while existing resources are being imported and compared:
+Pulumi projects under [infrastructure/pulumi/](infrastructure/pulumi/) define every
+AWS resource. **Order matters**: both agents read Gateway outputs through Pulumi
+stack references.
 
-```bash
-python infrastructure/gateway/deploy.py
+```mermaid
+flowchart LR
+    G["1 · gateway<br/>Gateway, targets, Lambdas, IAM"] --> M["2 · managed_agent<br/>Harness config"]
+    G --> C["3 · custom_agent<br/>ECR + Runtime"]
+    T["mcp_tools<br/>MCP server on Runtime"] -.-> G
 ```
-
-Do not run the script after Pulumi adoption is complete. See
-[`docs/cicd.md`](docs/cicd.md) for the import and deployment procedure.
-
-## Define And Deploy Agents In AWS
-
-AWS resources are defined as code in the Pulumi projects under
-`infrastructure/pulumi/`. The GitHub Actions deployment workflows call these
-same Pulumi projects from CI/CD.
-
-```text
-infrastructure/pulumi/gateway/
-  __main__.py               # Defines AgentCore Gateway, target, Lambda, IAM
-  Pulumi.yaml               # Pulumi project definition
-  Pulumi.production.yaml    # Production stack configuration
-
-infrastructure/pulumi/managed_agent/
-  __main__.py               # Defines the managed AgentCore Harness agent
-  Pulumi.yaml
-  Pulumi.production.yaml
-
-infrastructure/pulumi/custom_agent/
-  __main__.py               # Defines ECR and AgentCore Runtime
-  Pulumi.yaml
-  Pulumi.production.yaml
-```
-
-Deploy manually from a terminal with valid AWS credentials:
 
 ```bash
 aws sts get-caller-identity
 eval "$(aws configure export-credentials --format env)"
-```
 
-Deploy the Gateway first:
-
-```bash
 cd infrastructure/pulumi/gateway
 pulumi stack select mostaphaelansari/agentic-blueprint-gateway/production
-pulumi preview --diff
-pulumi up
-```
+pulumi preview --diff && pulumi up
 
-Deploy the managed Harness agent second:
-
-```bash
 cd ../managed_agent
 pulumi stack select mostaphaelansari/agentic-blueprint-managed-agent/production
-pulumi preview --diff
-pulumi up
-```
+pulumi preview --diff && pulumi up
 
-Deploy the custom Runtime agent third:
-
-```bash
 cd ../custom_agent
 pulumi stack select mostaphaelansari/agentic-blueprint-custom-agent/production
-pulumi preview --diff
-pulumi up
+pulumi preview --diff && pulumi up
 ```
 
-The deployment order matters because both agents read Gateway outputs through
-Pulumi stack references. Always review `pulumi preview --diff` before running
-`pulumi up`.
+Always review `pulumi preview --diff` before `pulumi up`. The boto3 script in
+[infrastructure/gateway/deploy.py](infrastructure/gateway/deploy.py) is legacy and
+should only be used while importing existing resources into Pulumi. To host
+`mcp-tools` on AgentCore Runtime, see
+[infrastructure/pulumi/mcp_tools/README.md](infrastructure/pulumi/mcp_tools/README.md).
 
-From GitHub, run the same deployments through Actions after the deployment
-repository secret and variables are configured:
+No GitHub Actions workflows are included in this checkout; run deployments manually.
 
-```text
-Actions -> Deploy gateway -> Run workflow
-Actions -> Deploy managed agent -> Run workflow
-Actions -> Deploy custom agent -> Run workflow
-```
+---
 
-Use the `main` branch for production workflow runs.
+## Comparison app features
 
-## CI/CD
+| Feature | What it does |
+|---|---|
+| **Comparison / Custom agent pages** | Side-by-side Managed vs Custom, or Custom alone. Each page keeps its own conversation and run. |
+| **Conversation tree** | New prompts continue from the selected node; **Edit and resubmit** creates a sibling branch. Each node gets fresh AgentCore session IDs so cost stays attributable. |
+| **Stop comparison** | Closes both streams and calls `StopRuntimeSession` for the Custom agent. Harness has no stop API, so Managed is cancelled client-side only and may bill until its turn ends. Missing usage shows as *pending*, resolved later by *Refresh session cost*. |
+| **File analysis** | One UTF-8 CSV or mmCIF file (≤ 1 MB) is staged as an encrypted, short-lived S3 object and shared via presigned URL. Agents analyze it with a code interpreter; charts render as Vega-Lite. |
+| **Mol\* 3D viewer** | mmCIF structures preview in an interactive viewer; residue clicks flow back to Python and can be added to the next prompt. |
+| **Feedback** | Thumbs up/down per answer, stored in SQLite (`agent_feedback` table, `FEEDBACK_DB_PATH` or `SESSION_COST_DB_PATH`). |
+| **AWS read-only console** | Runs allow-listed read-only AWS CLI commands to inspect the AgentCore and CloudWatch data behind cost figures. Disable with `ENABLE_AWS_CLI_CONSOLE=false`. |
+| **Measured cost** | Tokens + Gateway operations + Runtime compute, computed the same way for both agents. |
 
-Pull requests run formatting, linting, unit tests, Python compilation,
-dependency auditing, secret scanning, and a local Streamlit health check.
-Pushes to `main` additionally run the AgentCore on-demand dataset evaluation
-against the Custom Runtime currently deployed in `dev`. This is a deployed-service
-smoke check; the custom deployment workflow is the gate that evaluates the newly
-deployed Git-SHA-tagged candidate.
-
-Production AWS changes are deliberately separated into three manually
-triggered workflows:
-
-- Gateway and Open-Meteo Lambda
-- Managed AgentCore Harness agent
-- Custom AgentCore Runtime agent
-
-Each deployment workflow runs `pulumi preview` before `pulumi up`. The custom
-agent workflow also builds and publishes an immutable ECR image tagged with the
-Git commit SHA, passes that image URI to the Pulumi Runtime stack, and runs the
-AgentCore evaluation gate after deployment.
-
-Deployments are serialized with GitHub Actions concurrency groups. For example,
-`deploy-managed-agent.yml` uses `dev-managed-agent` with
-`cancel-in-progress: false`, so a second managed-agent deployment waits instead
-of interrupting one already in progress.
-
-The workflows use GitHub OIDC and the `dev` GitHub Actions environment name.
-The required GitHub Actions secret is `PULUMI_ACCESS_TOKEN`; required variables
-include the AWS deploy role ARNs, AWS regions, ECR repository name, and Pulumi
-stack names. The live evaluation also requires `CUSTOM_AGENT_RUNTIME_ARN` and
-AgentCore Evaluation plus CloudWatch query permissions on the custom-agent role.
-Without that GitHub Actions configuration, pull-request validation can run, but
-the main-branch evaluation and CD are not executable from GitHub Actions.
-
-Evaluation reports include the Runtime version/container URI and hashes of the
-dataset and evaluation configuration. The current two-case suite uses live
-Open-Meteo data and initial thresholds; see [`evaluations/README.md`](evaluations/README.md)
-for its guarantees and limits.
-
-The Streamlit UI is never packaged, published, or hosted by these workflows. It
-is started only inside CI for a temporary health check.
-
-For setup, required GitHub variables, Pulumi imports, deployment order, and
-rollback instructions, see [`docs/cicd.md`](docs/cicd.md).
-
-## Live Diagnostics
-
-```bash
-python tests/manual/check_thinking_events.py
-```
-
-This diagnostic makes real AWS calls for Custom thinking on/off and Managed
-thinking on. It is intentionally separate from offline unit tests.
-
-## Token Semantics
+**Token semantics** (identical for every backend):
 
 ```text
 Prompt = fresh input + cache read + cache write
 Total  = Prompt + output
 ```
 
-The UI computes these values consistently for both architectures instead of
-depending on provider-specific `totalTokens` behavior.
-#   A g e n t i c - A I - i n - A W S  
- 
+**IAM note:** the UI identity needs `bedrock-agentcore:InvokeAgentRuntime` and
+`bedrock-agentcore:StopRuntimeSession` on the Runtime ARN.
+
+<details>
+<summary><b>Model-routing configuration</b></summary>
+
+| Variable | Purpose |
+|---|---|
+| `MODEL_ROUTING_MODE` | Non-UI default: Auto, Economy or Quality |
+| `BEDROCK_CHEAP_MODEL_ID` / `BEDROCK_STRONG_MODEL_ID` | Haiku / Sonnet model IDs |
+| `HARNESS_CHEAP_MODEL_ID` | Regional override for the Harness |
+| `COMPLEXITY_TIERS` | JSON tier → `cheap`/`strong` map (default: only `SIMPLE` is cheap) |
+| `COMPLEXITY_TIER_BOUNDARIES` | JSON overrides for 0.15 / 0.35 / 0.60 score boundaries |
+| `MODEL_ROUTER_CLASSIFIER_MODEL_ID` / `_REGION` / `_TIMEOUT_MS` | Default `mistral.ministral-3-3b-instruct`, `eu-west-1`, 750 ms |
+| `MODEL_ROUTER_CLASSIFIER_INPUT_PER_MTOK` / `_OUTPUT_PER_MTOK` | Classifier pricing (default $0.12 / M tokens) |
+| `MODEL_ROUTER_VERSION` | Pin the policy version recorded in traces |
+
+Routing falls back safely to Sonnet if the router is unavailable or picks a model
+outside the allowlist. LiteLLM router internals are version-sensitive; re-check
+the scorer when upgrading. A learned-router experiment with a 7,212-query
+corpus lives in [evaluations/llmrouter/](evaluations/llmrouter/README.md); it is
+not on the app's routing path. See [.env.example](.env.example) for all settings.
+
+</details>
+
+---
+
+## RAG and GraphRAG
+
+The agents' `search_travel_guides` tool is backed by a Wikivoyage RAG pipeline:
+
+```text
+Wikivoyage dump → clean & chunk (scripts/wikivoyage_rag.py) → S3
+  → Bedrock Knowledge Base embeds with Titan → Pinecone
+  → Gateway Lambda (search_travel_guides) → agent writes the answer
+```
+
+![Wikivoyage RAG pipeline](docs/assets/wikivoyage-rag-pipeline-v5.png)
+
+[scripts/](scripts/) also holds the experiments around it: hybrid BM25 + semantic
+search, OpenSearch Serverless, Neptune Analytics and Neo4j GraphRAG, Cohere and
+Granite embedding comparisons, a self-hosted Qdrant + Ollama counterpart, and a
+DATAtourisme Paris corpus.
+
+**GraphRAG result (2Wiki multi-hop, 60 bridge questions):** graph retrieval
+raised complete-chain recall at K=5 from **63.3% → 83.3%** (+20 pts, McNemar
+p = 0.012). Details in
+[docs/graphRAG/2wiki_multihop_benchmark.md](docs/graphRAG/2wiki_multihop_benchmark.md).
+
+Read more: [docs/RAG/Travel_RAG_Pipeline_and_Deployed_Components.md](docs/RAG/Travel_RAG_Pipeline_and_Deployed_Components.md).
+
+---
+
+## Testing and evaluation
+
+```bash
+uv run pytest tests/unit                       # offline unit tests
+python tests/manual/check_thinking_events.py   # live AWS: reasoning events on/off
+uv run python evaluations/run_agentcore_evaluation.py   # AgentCore Evaluations gate
+```
+
+[evaluations/](evaluations/README.md) contains:
+
+- **AgentCore Evaluations** — invokes the deployed Custom Runtime on golden
+  scenarios, collects spans from CloudWatch, and scores correctness, goal success,
+  and trajectory. Fails on any threshold miss.
+- **MLflow** — golden-dataset, trace, and guardrail evaluations plus scorecards.
+- **Router evaluation** — classifier accuracy and learned-router datasets.
+
+---
+
+## Learn more
+
+| Start here if you want to… | Read |
+|---|---|
+| Understand the codebase from zero | [explanation/README.md](explanation/README.md) → [00-concepts-for-beginners.md](explanation/00-concepts-for-beginners.md) |
+| Compare managed vs custom agents | [docs/Guides about performance concerns/Managed_and_custom_agent_architecture.md](docs/Guides%20about%20performance%20concerns/Managed_and_custom_agent_architecture.md) |
+| Choose an agent design pattern | [docs/Agentic Patterns/](docs/Agentic%20Patterns/) (ReAct, supervisor/worker, swarm, A2A, HITL…) |
+| Decide Gateway vs self-hosted MCP | [docs/Gateway vs self hosted mcp/](docs/Gateway%20vs%20self%20hosted%20mcp/gateway-vs-self-hosted-mcp.md) |
+| Tune latency, caching, tokens, throttling | [docs/Guides about performance concerns/](docs/Guides%20about%20performance%20concerns/) |
+| Handle quality, drift, guardrails | [docs/Guides about quality and safety concerns/](docs/Guides%20about%20quality%20and%20safety%20concerns/) |
+| Understand LLM inference (vLLM, KV cache) | [docs/inference/](docs/inference/) |
+| Get an overview of AgentCore services | [docs/AgentCore service portfolio onepager/](docs/AgentCore%20service%20portfolio%20onepager/agentcore_service_portfolio_onepager.md) |
