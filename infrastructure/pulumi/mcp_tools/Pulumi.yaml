@@ -1,0 +1,6 @@
+name: agentic-blueprint-mcp-tools
+runtime:
+  name: python
+  options:
+    virtualenv: ../../../.venv
+description: Open-source mcp-tools server hosted on AgentCore Runtime (MCP protocol).

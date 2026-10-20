@@ -1,0 +1,64 @@
+config:
+  aws:region: eu-central-1
+  agentic-blueprint-gateway:gateway_name: benchma-open-meteo
+  agentic-blueprint-gateway:gateway_role_name: AgentCoreGatewayExecutionRole
+  agentic-blueprint-gateway:lambda_function_name: benchma-open-meteo-tools
+  agentic-blueprint-gateway:lambda_role_name: benchma-open-meteo-lambda-role
+  agentic-blueprint-gateway:target_name: open-meteo-tools
+  # Set these only for the first update so Pulumi adopts existing resources.
+  agentic-blueprint-gateway:import_gateway_id: benchma-open-meteo-EXAMPLE
+  agentic-blueprint-gateway:import_gateway_target_id: benchma-open-meteo-EXAMPLE,EXAMPLETARGET
+  agentic-blueprint-gateway:import_lambda_id: benchma-open-meteo-tools
+  agentic-blueprint-gateway:import_gateway_role_id: AgentCoreGatewayExecutionRole
+  agentic-blueprint-gateway:import_gateway_policy_id: AgentCoreGatewayExecutionRole:BedrockAgentCoreGatewayAccess
+  agentic-blueprint-gateway:import_lambda_role_id: benchma-open-meteo-lambda-role
+  agentic-blueprint-gateway:import_lambda_policy_attachment_id: benchma-open-meteo-lambda-role/arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+  # Optional: attach the hosted opensource/mcp-tools AgentCore Runtime as an MCP target.
+  # Prefer a stack reference after `pulumi up` in infrastructure/pulumi/mcp_tools:
+  # agentic-blueprint-gateway:mcp_tools_stack: ORGANIZATION/agentic-blueprint-mcp-tools/production
+  # Or set the endpoint URL directly:
+  # agentic-blueprint-gateway:mcp_tools_endpoint: https://bedrock-agentcore.eu-central-1.amazonaws.com/runtimes/.../invocations?qualifier=DEFAULT
+  # Optional Wikivoyage Bedrock Knowledge Base backed by Pinecone. Create an empty
+  # 512-dimension cosine index first; never put the API key in this file.
+  agentic-blueprint-gateway:enable_travel_rag: "false"
+  # agentic-blueprint-gateway:pinecone_index_host: https://travel-rag-EXAMPLE.svc.pinecone.io
+  # agentic-blueprint-gateway:pinecone_namespace: wikivoyage-pilot-v1
+  # agentic-blueprint-gateway:travel_rag_candidate_namespace: wikivoyage-pilot-v2
+  # agentic-blueprint-gateway:travel_rag_candidate_active: "false"
+  # Optional evaluation-only KB. It is never selected by the runtime Lambda.
+  # agentic-blueprint-gateway:travel_rag_evaluation_namespace: wikivoyage-eval-v1
+  # To evaluate Titan at 1024 dimensions alongside the 512 baseline, create a
+  # separate 1024-dimension cosine Pinecone index and configure both values.
+  # agentic-blueprint-gateway:travel_rag_evaluation_1024_namespace: wikivoyage-eval-v1
+  # agentic-blueprint-gateway:travel_rag_evaluation_1024_pinecone_index_host: https://travel-rag-1024-EXAMPLE.svc.pinecone.io
+  # OpenSearch Serverless hybrid candidate (BM25 + dense vectors). Create the
+  # collection first, bootstrap the index, then set hybrid_index_ready=true.
+  # agentic-blueprint-gateway:travel_rag_hybrid_collection_name: travel-rag-hybrid
+  # agentic-blueprint-gateway:travel_rag_hybrid_index_name: travel-rag-hybrid-v1
+  # agentic-blueprint-gateway:travel_rag_hybrid_embedding_dimensions: "1024"
+  # agentic-blueprint-gateway:travel_rag_hybrid_index_ready: "false"
+  # agentic-blueprint-gateway:travel_rag_hybrid_active: "false"
+  # agentic-blueprint-gateway:travel_rag_hybrid_admin_principal_arn: arn:aws:iam::123456789012:role/YourDeploymentRole
+  # For IAM Identity Center bootstrap sessions, OpenSearch may also require the
+  # current STS assumed-role ARN in its data access policy.
+  # agentic-blueprint-gateway:travel_rag_hybrid_admin_session_arn: arn:aws:sts::123456789012:assumed-role/YourSSORole/you@example.com
+  # Prefer letting Pulumi create the secret:
+  # pulumi config set --secret agentic-blueprint-gateway:pinecone_api_key YOUR_KEY
+  # Alternatively, reference an existing secret whose JSON is {"apiKey":"..."}:
+  # agentic-blueprint-gateway:pinecone_secret_arn: arn:aws:secretsmanager:eu-central-1:123456789012:secret:agentic-blueprint/pinecone/travel-rag-EXAMPLE
+  # agentic-blueprint-gateway:pinecone_secret_name: agentic-blueprint/pinecone/travel-rag
+  # agentic-blueprint-gateway:travel_rag_knowledge_base_name: benchma-travel-rag
+  # agentic-blueprint-gateway:travel_rag_knowledge_base_role_name: benchma-travel-rag-kb-role
+  # agentic-blueprint-gateway:travel_rag_reranking_model_id: amazon.rerank-v1:0
+  # agentic-blueprint-gateway:travel_rag_rerank_candidates: "20"
+  # agentic-blueprint-gateway:travel_rag_bucket_name: agentic-blueprint-travel-rag-123456789012-eu-central-1
+  # Required remote MCP API keys (Pulumi secrets). Missing keys fail the stack.
+  # One RapidAPI key can be reused for Booking.com, AeroDataBox, and Air Scraper.
+  # pulumi config set --secret agentic-blueprint-gateway:rapidapi_key YOUR_KEY
+  # Optional dedicated overrides:
+  # pulumi config set --secret agentic-blueprint-gateway:aerodatabox_rapidapi_key YOUR_KEY
+  # pulumi config set --secret agentic-blueprint-gateway:air_scraper_rapidapi_key YOUR_KEY
+  # pulumi config set --secret agentic-blueprint-gateway:flight_rapidapi_key YOUR_KEY
+  # pulumi config set --secret agentic-blueprint-gateway:geoapify_api_key YOUR_KEY
+  # Bump *_version after rotating a write-only api_key_wo secret:
+  # agentic-blueprint-gateway:rapidapi_key_version: "2"

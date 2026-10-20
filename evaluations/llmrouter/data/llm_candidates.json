@@ -1,0 +1,20 @@
+{
+  "cheap": {
+    "size": "economy",
+    "feature": "Claude Haiku tier for bounded retrieval, extraction, formatting, arithmetic, direct visualization commands, and other low-risk tasks.",
+    "input_price": 1.0,
+    "output_price": 5.0,
+    "model": "eu.anthropic.claude-haiku-4-5-20251001-v1:0",
+    "service": "AWS Bedrock",
+    "api_endpoint": "route-only"
+  },
+  "strong": {
+    "size": "quality",
+    "feature": "Claude Sonnet tier for deep explanation, multi-source synthesis, complex planning, scientific inference, safety, and high-stakes decisions.",
+    "input_price": 3.0,
+    "output_price": 15.0,
+    "model": "eu.anthropic.claude-sonnet-4-6",
+    "service": "AWS Bedrock",
+    "api_endpoint": "route-only"
+  }
+}

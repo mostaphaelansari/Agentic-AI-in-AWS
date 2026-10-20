@@ -1,0 +1,23 @@
+config:
+  aws:region: eu-central-1
+  agentic-blueprint-mcp-tools:runtime_name: opensource_mcp_tools
+  agentic-blueprint-mcp-tools:ecr_repository_name: bedrock-agentcore-mcp-tools
+  # Clean checkout: do NOT set image_uri until after BOOTSTRAP_ECR_ONLY=true pulumi up
+  # and a linux/arm64 push. CI passes IMAGE_URI=<ecr>/<repo>:<git-sha>.
+  # agentic-blueprint-mcp-tools:image_uri: ACCOUNT.dkr.ecr.eu-central-1.amazonaws.com/bedrock-agentcore-mcp-tools:GIT_SHA
+  # Optional: reuse an existing AgentCore Runtime execution role instead of creating one.
+  # agentic-blueprint-mcp-tools:execution_role_arn: arn:aws:iam::ACCOUNT_ID:role/RUNTIME_ROLE
+  # Optional one-shot bootstrap flag (prefer BOOTSTRAP_ECR_ONLY=true env in CI):
+  # agentic-blueprint-mcp-tools:bootstrap_ecr_only: "true"
+  # Full tool set by default (weather included; Gateway prefixes names per target).
+  # Set "false" only for a web-and-map-only Runtime.
+  # Gateway supplies weather separately; keep one copy of each benchmark tool.
+  agentic-blueprint-mcp-tools:enable_weather_tools: "false"
+  agentic-blueprint-mcp-tools:ddgs_backend: auto
+  agentic-blueprint-mcp-tools:ddgs_timeout: "8"
+  agentic-blueprint-mcp-tools:ddgs_max_results: "10"
+  agentic-blueprint-mcp-tools:osm_user_agent: Aws-agentic-blueprint/1.0 (AgentCore mcp-tools)
+  # agentic-blueprint-mcp-tools:osm_contact_email: ops@example.com
+  # Comma-separated failover endpoints for findNearbyPlaces. Prefer a paid or
+  # self-hosted Overpass endpoint for production traffic.
+  agentic-blueprint-mcp-tools:overpass_url: https://overpass.kumi.systems/api/interpreter,https://overpass-api.de/api/interpreter,https://overpass.osm.ch/api/interpreter,https://overpass.openstreetmap.fr/api/interpreter

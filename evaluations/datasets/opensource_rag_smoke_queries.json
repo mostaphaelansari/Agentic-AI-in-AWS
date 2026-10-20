@@ -1,0 +1,82 @@
+{
+  "name": "opensource_rag_smoke_queries",
+  "version": "1",
+  "description": "Functional retrieval checks for the 15-document open-source smoke index. These cases validate BM25, semantic, and hybrid wiring; they are not a production-quality benchmark.",
+  "queries": [
+    {
+      "query": "Which museum is home to the Mona Lisa and Venus de Milo?",
+      "destination": "Paris",
+      "accept": ["Musée du Louvre"]
+    },
+    {
+      "query": "Where can I see Impressionist paintings in a former railway station?",
+      "destination": "Paris",
+      "accept": ["Musée d'Orsay"]
+    },
+    {
+      "query": "Find the modern art museum in the building with colourful pipes",
+      "destination": "Paris",
+      "accept": ["Centre Pompidou"]
+    },
+    {
+      "query": "Which museum has Auguste Rodin sculptures and a garden?",
+      "destination": "Paris",
+      "accept": ["Musée Rodin"]
+    },
+    {
+      "query": "Find the iron tower with observation decks",
+      "destination": "Paris",
+      "accept": ["Eiffel Tower"]
+    },
+    {
+      "query": "Find the Gothic cathedral on the Île de la Cité with rose windows",
+      "destination": "Paris",
+      "accept": ["Notre-Dame de Paris"]
+    },
+    {
+      "query": "I want an authentic Cambodian restaurant",
+      "destination": "Paris",
+      "accept": ["Le Cambodge"]
+    },
+    {
+      "query": "Find a Provençal bistro near the Marais",
+      "destination": "Paris",
+      "accept": ["Chez Janou"]
+    },
+    {
+      "query": "Which historic cocktail bar is the birthplace of the Bloody Mary?",
+      "destination": "Paris",
+      "accept": ["Harry's New York Bar"]
+    },
+    {
+      "query": "Find luxury lodging with a rooftop pool and a large garden",
+      "destination": "Paris",
+      "accept": ["Hotel Le Bristol"]
+    },
+    {
+      "query": "Where is the huge antiques flea market?",
+      "destination": "Paris",
+      "accept": ["Marche aux Puces"]
+    },
+    {
+      "query": "Find the covered market and flea market in the 12th arrondissement",
+      "destination": "Paris",
+      "accept": ["Marché d'Aligre"]
+    },
+    {
+      "query": "Which museum has Picasso's early works?",
+      "destination": "Barcelona",
+      "accept": ["Museu Picasso"]
+    },
+    {
+      "query": "Find the modern art museum devoted to Joan Miró",
+      "destination": "Barcelona",
+      "accept": ["Fundació Joan Miró"]
+    },
+    {
+      "query": "Find Gaudí's unfinished basilica",
+      "destination": "Barcelona",
+      "accept": ["Sagrada Família"]
+    }
+  ]
+}

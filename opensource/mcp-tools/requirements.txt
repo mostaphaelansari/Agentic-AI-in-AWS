@@ -1,0 +1,5 @@
+mcp==1.27.2
+ddgs==9.14.4
+# Travel-guide retrieval (rag.opensource). The embedding and reranker clients
+# use urllib, so no HTTP library is needed beyond the standard library.
+qdrant-client==1.19.0

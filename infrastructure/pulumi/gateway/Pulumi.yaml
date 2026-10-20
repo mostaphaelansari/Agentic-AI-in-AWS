@@ -1,0 +1,6 @@
+name: agentic-blueprint-gateway
+runtime:
+  name: python
+  options:
+    virtualenv: ../../../.venv
+description: AgentCore Gateway, Open-Meteo Lambda, and execution roles.

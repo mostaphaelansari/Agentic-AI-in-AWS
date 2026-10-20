@@ -1,0 +1,16 @@
+# BuildKit per-Dockerfile ignore for the UI image (build context = repo root).
+# Allowlist: send only what the Dockerfile actually COPYs.
+*
+!opensource/ui/
+!apps/comparison/assets/
+!apps/comparison/molecule_viewer.py
+!apps/comparison/molstar_component.py
+!docs/
+
+# ...minus caches and junk inside the allowed paths
+**/__pycache__/
+**/*.py[cod]
+**/.venv/
+**/.DS_Store
+opensource/ui/Dockerfile
+opensource/ui/Dockerfile.dockerignore

@@ -1,0 +1,6 @@
+name: agentic-blueprint-managed-agent
+runtime:
+  name: python
+  options:
+    virtualenv: ../../../.venv
+description: Configuration-defined AgentCore Harness agent.

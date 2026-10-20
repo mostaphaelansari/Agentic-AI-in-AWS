@@ -1,0 +1,10 @@
+config:
+  aws:region: eu-central-1
+  agentic-blueprint-managed-agent:gateway_stack: mostaphaelansari/agentic-blueprint-gateway/production
+  agentic-blueprint-managed-agent:harness_name: managed_agent_harness
+  agentic-blueprint-managed-agent:execution_role_arn: arn:aws:iam::554025156005:role/service-role/AmazonBedrockAgentCoreRuntimeDefaultServiceRole-lwbq4
+  agentic-blueprint-managed-agent:model_id: eu.anthropic.claude-sonnet-4-6
+  agentic-blueprint-managed-agent:max_iterations: "12"
+  agentic-blueprint-managed-agent:timeout_seconds: "3600"
+  agentic-blueprint-managed-agent:gateway_policy_name: InvokeGateway-eu-central-1-benchma-open-meteo-pb9jwtynsj
+  agentic-blueprint-managed-agent:import_harness_id: arn:aws:bedrock-agentcore:eu-central-1:554025156005:harness/managed_agent_harness-oVFMi1D2Bn

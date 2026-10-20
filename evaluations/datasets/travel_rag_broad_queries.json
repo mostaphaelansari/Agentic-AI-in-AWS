@@ -1,0 +1,179 @@
+{
+  "name": "travel_rag_broad_queries",
+  "version": "1",
+  "description": "Broad-domain Paris retrieval checks covering every routed travel category. The focused query is the deterministic category rewrite used for vector retrieval.",
+  "queries": [
+    {
+      "query": "Where should I eat in Paris?",
+      "focused_query": "Paris restaurants dining and places to eat",
+      "destination": "Paris",
+      "category_key": "restaurants",
+      "accept_category": "restaurants"
+    },
+    {
+      "query": "Find a Cambodian restaurant in Paris",
+      "focused_query": "Cambodian restaurant in Paris",
+      "destination": "Paris",
+      "category_key": "restaurants",
+      "accept": ["Le Cambodge"]
+    },
+    {
+      "query": "Fine dining on the Eiffel Tower",
+      "focused_query": "Fine dining restaurant on the Eiffel Tower in Paris",
+      "destination": "Paris",
+      "category_key": "restaurants",
+      "accept": ["Le Jules Verne"]
+    },
+    {
+      "query": "Where should I stay in Paris?",
+      "focused_query": "Paris hotels accommodation lodging and places to stay",
+      "destination": "Paris",
+      "category_key": "accommodation",
+      "accept_category": "accommodation"
+    },
+    {
+      "query": "Find an affordable youth hostel near Montmartre",
+      "focused_query": "Affordable youth hostel near Montmartre in Paris",
+      "destination": "Paris",
+      "category_key": "accommodation",
+      "accept": [
+        "Auberge de Jeunesse HI Paris Yves Robert",
+        "Auberge de Jeunesse Paris Yves Robert",
+        "Le Régent Montmartre"
+      ]
+    },
+    {
+      "query": "Find a luxury hotel near the Louvre",
+      "focused_query": "Luxury hotel near the Louvre in Paris",
+      "destination": "Paris",
+      "category_key": "accommodation",
+      "accept": ["Hôtel Regina Louvre", "Hôtel du Louvre"]
+    },
+    {
+      "query": "What activities can I do in Paris?",
+      "focused_query": "Paris activities events and things to do",
+      "destination": "Paris",
+      "category_key": "activities",
+      "accept_category": "activities"
+    },
+    {
+      "query": "Take a sightseeing cruise on the Seine",
+      "focused_query": "Seine sightseeing cruise departing near the Eiffel Tower in Paris",
+      "destination": "Paris",
+      "category_key": "activities",
+      "accept": ["Bateaux Parisiens", "Bateaux-Mouches ®", "Canauxrama"]
+    },
+    {
+      "query": "Find a hop-on hop-off sightseeing bus",
+      "focused_query": "Hop-on hop-off sightseeing bus tour in Paris",
+      "destination": "Paris",
+      "category_key": "activities",
+      "accept": ["Big Bus Paris"]
+    },
+    {
+      "query": "Where can I go for drinks and nightlife?",
+      "focused_query": "Paris bars pubs nightlife and places to drink",
+      "destination": "Paris",
+      "category_key": "drinks",
+      "accept_category": "drinks"
+    },
+    {
+      "query": "Find a nightclub for dancing in Paris",
+      "focused_query": "Nightclub for dancing in Paris",
+      "destination": "Paris",
+      "category_key": "drinks",
+      "accept": ["Le Duplex", "Le Tango Paris"]
+    },
+    {
+      "query": "Find an urban culture bar in the Marais",
+      "focused_query": "Urban culture bar in the Marais in Paris",
+      "destination": "Paris",
+      "category_key": "drinks",
+      "accept": ["FAT bar"]
+    },
+    {
+      "query": "Where should I go shopping in Paris?",
+      "focused_query": "Paris shopping shops and markets",
+      "destination": "Paris",
+      "category_key": "shopping",
+      "accept_category": "shopping"
+    },
+    {
+      "query": "Find an English-language bookshop in the Latin Quarter",
+      "focused_query": "English-language bookshop in the Latin Quarter in Paris",
+      "destination": "Paris",
+      "category_key": "shopping",
+      "accept": ["Abbey Bookshop Paris"]
+    },
+    {
+      "query": "Find an open-air market near Bastille",
+      "focused_query": "Open-air food market near Bastille in Paris",
+      "destination": "Paris",
+      "category_key": "shopping",
+      "accept": ["Marché Bastille"]
+    },
+    {
+      "query": "Which attractions should I visit in Paris?",
+      "focused_query": "Paris tourist attractions and places to visit",
+      "destination": "Paris",
+      "category_key": "attractions",
+      "accept_category": "attractions"
+    },
+    {
+      "query": "Find the famous square between the Champs-Élysées and the Tuileries",
+      "focused_query": "Famous square between the Champs-Élysées and Tuileries in Paris",
+      "destination": "Paris",
+      "category_key": "attractions",
+      "accept": ["Place de la Concorde"]
+    },
+    {
+      "query": "Find a floating urban art centre on the Seine",
+      "focused_query": "Floating urban art centre on the Seine in Paris",
+      "destination": "Paris",
+      "category_key": "attractions",
+      "accept": ["Fluctuart"]
+    },
+    {
+      "query": "Which museums and galleries should I visit?",
+      "focused_query": "Paris museums and art galleries",
+      "destination": "Paris",
+      "category_key": "museums",
+      "accept_category": "museums"
+    },
+    {
+      "query": "Find an interactive science museum",
+      "focused_query": "Interactive science museum in Paris",
+      "destination": "Paris",
+      "category_key": "museums",
+      "accept": ["Cité des sciences et de l'industrie"]
+    },
+    {
+      "query": "Find a museum dedicated to street art",
+      "focused_query": "Street art and urban art museum in Paris",
+      "destination": "Paris",
+      "category_key": "museums",
+      "accept": ["Art 42 - Urban Art Collection"]
+    },
+    {
+      "query": "Which monuments and landmarks should I visit?",
+      "focused_query": "Paris landmarks monuments and historical sites",
+      "destination": "Paris",
+      "category_key": "landmarks",
+      "accept_category": "landmarks"
+    },
+    {
+      "query": "Find Napoleon's monument at the Champs-Élysées",
+      "focused_query": "Napoleon monument at the Champs-Élysées in Paris",
+      "destination": "Paris",
+      "category_key": "landmarks",
+      "accept": ["Arc de Triomphe"]
+    },
+    {
+      "query": "Find the Gothic cathedral on the Île de la Cité",
+      "focused_query": "Gothic cathedral on the Île de la Cité in Paris",
+      "destination": "Paris",
+      "category_key": "landmarks",
+      "accept": ["Cathédrale Notre-Dame de Paris", "Cathédrale Notre-Dame de Paris et son trésor"]
+    }
+  ]
+}

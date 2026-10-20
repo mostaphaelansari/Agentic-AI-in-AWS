@@ -1,0 +1,3 @@
+# Compatibility entrypoint for tools that still expect requirements.txt.
+# The authoritative dependency set and lockfile are pyproject.toml and uv.lock.
+-e .

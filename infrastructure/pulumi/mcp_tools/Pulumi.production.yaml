@@ -1,0 +1,9 @@
+config:
+  aws:region: eu-central-1
+  # Gateway already exposes the Open-Meteo Lambda target. Avoid duplicate
+  # getForecast/searchLocation entries in the AWS benchmark catalog.
+  agentic-blueprint-mcp-tools:enable_weather_tools: "false"
+  agentic-blueprint-mcp-tools:ddgs_backend: auto
+  agentic-blueprint-mcp-tools:ddgs_timeout: "8"
+  agentic-blueprint-mcp-tools:ddgs_max_results: "10"
+  agentic-blueprint-mcp-tools:overpass_url: https://overpass.kumi.systems/api/interpreter,https://overpass-api.de/api/interpreter,https://overpass.osm.ch/api/interpreter,https://overpass.openstreetmap.fr/api/interpreter

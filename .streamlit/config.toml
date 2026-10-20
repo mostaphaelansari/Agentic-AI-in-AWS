@@ -1,0 +1,5 @@
+[server]
+# Transformers exposes hundreds of lazy model modules. Streamlit's module-path
+# watcher probes them all after Longformer loads, which imports optional image
+# processors and floods the log when torchvision is intentionally absent.
+fileWatcherType = "none"

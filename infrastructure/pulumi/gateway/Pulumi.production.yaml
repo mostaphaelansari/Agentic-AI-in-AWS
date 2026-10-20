@@ -1,0 +1,22 @@
+config:
+  aws:region: eu-central-1
+  agentic-blueprint-gateway:rapidapi_key:
+    secure: AAABACWL3tEnisVR5/u+wnu9JUBdtR1+vLA5QiG5iosQZvHg+t7WRHGYpR8uUGIlI4D8VUhIztH1gbSF20ecWnAaAIZnmvsN7m995v/qSK5Rgg==
+  agentic-blueprint-gateway:geoapify_api_key:
+    secure: AAABAI9XuItFx+tOC8ggHEM8vuoObsBjod0JsbWG4kE7qXV6siCszMceGJ5bbXQiV6/hr+S/ycfc0YS6zx6PIMTN8amQbtWh7bdwn9u6lBZiKg==
+  agentic-blueprint-gateway:enable_travel_rag: "true"
+  agentic-blueprint-gateway:pinecone_index_host: https://travel-rag-ulijrkk.svc.aped-4627-b74a.pinecone.io
+  agentic-blueprint-gateway:pinecone_namespace: wikivoyage-pilot-v1
+  agentic-blueprint-gateway:travel_rag_candidate_active: "false"
+  agentic-blueprint-gateway:travel_rag_evaluation_namespace: wikivoyage-eval-v1
+  agentic-blueprint-gateway:travel_rag_structured_active: "false"
+  agentic-blueprint-gateway:travel_rag_hybrid_collection_name: benchma-travel-rag-hybrid
+  agentic-blueprint-gateway:travel_rag_hybrid_index_name: travel-rag-hybrid-v2
+  agentic-blueprint-gateway:travel_rag_hybrid_embedding_dimensions: "1024"
+  agentic-blueprint-gateway:travel_rag_hybrid_index_ready: "true"
+  agentic-blueprint-gateway:travel_rag_hybrid_active: "false"
+  agentic-blueprint-gateway:travel_rag_hybrid_admin_principal_arn: arn:aws:iam::554025156005:role/aws-reserved/sso.amazonaws.com/eu-central-1/AWSReservedSSO_AdministratorAccess_a93a987f02f30a90
+  agentic-blueprint-gateway:pinecone_api_key:
+    secure: AAABALJTFrdr2HQRVgC3sYpNc2BiYHlQgeeejgkaMb1s//LnyqoVyCyn8uNGu6Aww0F5I0SmdHb1PNcP9puLc6XFYA8Df990HJD0QWKOE9pEe1W8lY9gZfz7lV4pHjBXhu8ma+7xxPyIVNg=
+  agentic-blueprint-gateway:travel_rag_evaluation_1024_namespace: wikivoyage-eval-v1
+  agentic-blueprint-gateway:travel_rag_evaluation_1024_pinecone_index_host: https://travel-rag-titan-1024-ulijrkk.svc.aped-4627-b74a.pinecone.io

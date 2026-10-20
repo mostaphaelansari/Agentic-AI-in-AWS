@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "gate_name": "custom-runtime-smoke-v1",
+  "evaluator_groups": [
+    {
+      "name": "semantic",
+      "scenario_filter": "all",
+      "evaluator_thresholds": {
+        "Builtin.Correctness": 0.7,
+        "Builtin.GoalSuccessRate": 0.8
+      }
+    },
+    {
+      "name": "trajectory",
+      "scenario_filter": "with_expected_trajectory",
+      "evaluator_thresholds": {
+        "Builtin.TrajectoryExactOrderMatch": 1.0
+      }
+    }
+  ],
+  "evaluation_delay_seconds": 30,
+  "max_concurrent_scenarios": 2,
+  "span_max_wait_seconds": 300,
+  "span_poll_interval_seconds": 15,
+  "runtime_ready_timeout_seconds": 600,
+  "runtime_ready_poll_seconds": 10,
+  "invocation_payload": {
+    "enable_caching": false,
+    "enable_thinking": false
+  }
+}

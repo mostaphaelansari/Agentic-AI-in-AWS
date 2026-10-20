@@ -1,0 +1,19 @@
+config:
+  aws:region: eu-west-1
+  agentic-blueprint-custom-agent:gateway_stack: ORGANIZATION/agentic-blueprint-gateway/production
+  agentic-blueprint-custom-agent:runtime_name: agent
+  agentic-blueprint-custom-agent:ecr_repository_name: bedrock-agentcore-agent
+  agentic-blueprint-custom-agent:execution_role_arn: arn:aws:iam::ACCOUNT_ID:role/RUNTIME_ROLE
+  agentic-blueprint-custom-agent:offload_bucket: your-agentcore-artifact-bucket
+  agentic-blueprint-custom-agent:model_id: eu.anthropic.claude-sonnet-4-6
+  agentic-blueprint-custom-agent:cheap_model_id: eu.anthropic.claude-haiku-4-5-20251001-v1:0
+  agentic-blueprint-custom-agent:max_tool_calls: 12
+  agentic-blueprint-custom-agent:bedrock_max_tokens: 4096
+  agentic-blueprint-custom-agent:gateway_policy_name: InvokeGateway-eu-central-1-benchma-open-meteo-EXAMPLE
+  agentic-blueprint-custom-agent:import_ecr_repository_id: bedrock-agentcore-agent
+  agentic-blueprint-custom-agent:import_runtime_id: agent-EXAMPLE
+  agentic-blueprint-custom-agent:import_gateway_policy_id: AmazonBedrockAgentCoreSDKRuntime-REGION-EXAMPLE:InvokeGateway-eu-central-1-benchma-open-meteo-EXAMPLE
+  # Optional: mirror in-process OTEL spans to a reachable MLflow 3.6+ server.
+  # Keep the /v1/traces suffix. AWS ADOT continues exporting to CloudWatch.
+  # agentic-blueprint-custom-agent:mlflow_otlp_traces_endpoint: https://mlflow.example.com/v1/traces
+  # agentic-blueprint-custom-agent:mlflow_experiment_id: "0"

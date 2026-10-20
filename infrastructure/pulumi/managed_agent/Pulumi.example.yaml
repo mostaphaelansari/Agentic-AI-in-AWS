@@ -1,0 +1,12 @@
+config:
+  aws:region: eu-central-1
+  agentic-blueprint-managed-agent:gateway_stack: ORGANIZATION/agentic-blueprint-gateway/production
+  agentic-blueprint-managed-agent:harness_name: harness_single
+  agentic-blueprint-managed-agent:execution_role_arn: arn:aws:iam::ACCOUNT_ID:role/HARNESS_ROLE
+  agentic-blueprint-managed-agent:model_id: eu.anthropic.claude-sonnet-4-6
+  agentic-blueprint-managed-agent:max_iterations: "12"
+  agentic-blueprint-managed-agent:timeout_seconds: "900"
+  agentic-blueprint-managed-agent:gateway_policy_name: InvokeGateway-eu-central-1-benchma-open-meteo-EXAMPLE
+  # Set only for the first update to adopt the existing Harness.
+  agentic-blueprint-managed-agent:import_harness_id: harness_single-EXAMPLE
+  agentic-blueprint-managed-agent:import_gateway_policy_id: AmazonBedrockAgentCoreRuntimeDefaultServiceRole-EXAMPLE:InvokeGateway-eu-central-1-benchma-open-meteo-EXAMPLE

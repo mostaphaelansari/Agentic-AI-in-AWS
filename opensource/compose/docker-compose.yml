@@ -1,0 +1,299 @@
+# Full open-source agent stack (docs/opensource-migration-plan.md, Phase 6).
+# This file is the deployment source of truth for the open-source stack —
+# the counterpart of infrastructure/pulumi/, which stays the AWS stack's
+# deployment layer.
+#
+#   docker compose up -d --build          # entire stack, including observability
+#   docker compose exec ollama ollama pull qwen3:1.7b   # LiteLLM SIMPLE tier
+#
+# On a low-RAM machine you can reuse the host's Ollama instead of the
+# containerized one: see README.md.
+
+services:
+  ollama:
+    image: ollama/ollama:0.13.5
+    volumes:
+      - ollama:/root/.ollama
+    expose:
+      - "11434"
+
+  # Vector store for the travel-guide corpus. Internal only: it holds indexed
+  # public-corpus text, but nothing outside the compose network needs it.
+  qdrant:
+    # Keep the major/minor aligned with the qdrant-client pin in
+    # opensource/mcp-tools/requirements.txt; the client warns on a wider gap.
+    image: qdrant/qdrant:v1.19.0
+    volumes:
+      - qdrant:/qdrant/storage
+    expose:
+      - "6333"
+    # Bound to loopback only, so `scripts/opensource_rag.py` can index and
+    # query from the host without looking up the container's address. Nothing
+    # outside this machine can reach it.
+    ports:
+      - "127.0.0.1:6333:6333"
+
+  # Optional graph store for the local GraphRAG experiment. It is not part of
+  # the default stack: explicitly target it with `docker compose up -d neo4j`.
+  # Both host ports bind to loopback so the Browser and Bolt endpoints remain
+  # machine-local while other Compose services can still use `neo4j:7687`.
+  neo4j:
+    image: neo4j:2026.07.1
+    profiles: ["neo4j"]
+    environment:
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:-local-graph-rag}
+    volumes:
+      - neo4j:/data
+    ports:
+      - "127.0.0.1:7474:7474"
+      - "127.0.0.1:7687:7687"
+
+  # Cross-encoder reranker. Optional: clear RERANKER_URL and retrieval falls
+  # back to fused hybrid order (reported as ranking=HYBRID_FALLBACK).
+  reranker:
+    image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.8
+    command: ["--model-id", "${RERANKER_MODEL_ID:-BAAI/bge-reranker-base}", "--port", "80"]
+    volumes:
+      - reranker-models:/data
+    expose:
+      - "80"
+    ports:
+      - "127.0.0.1:8082:80"
+
+  mcp-tools:
+    # Built from the repo root so the image can vendor rag/, which holds the
+    # shared corpus code and the open-source retrieval engine. Same pattern the
+    # ui service uses.
+    build:
+      context: ../..
+      dockerfile: opensource/mcp-tools/Dockerfile
+    environment:
+      DDGS_BACKEND: ${DDGS_BACKEND:-auto}
+      DDGS_TIMEOUT: ${DDGS_TIMEOUT:-8}
+      DDGS_MAX_RESULTS: ${DDGS_MAX_RESULTS:-10}
+      OSM_USER_AGENT: ${OSM_USER_AGENT:-Aws-agentic-blueprint/1.0 (local map-researcher demo)}
+      OSM_CONTACT_EMAIL: ${OSM_CONTACT_EMAIL:-}
+      OSM_CACHE_TTL: ${OSM_CACHE_TTL:-3600}
+      # Travel-guide retrieval. Unset QDRANT_URL to disable the tool entirely.
+      QDRANT_URL: ${QDRANT_URL-http://qdrant:6333}
+      QDRANT_COLLECTION: ${QDRANT_COLLECTION:-travel-rag}
+      OLLAMA_HOST: ${RAG_OLLAMA_HOST:-http://ollama:11434}
+      RAG_INDEX_MANIFEST: ${RAG_INDEX_MANIFEST:-/data/rag/index-manifest.json}
+      RERANKER_URL: ${RERANKER_URL-http://reranker:80}
+      RAG_RERANK_CANDIDATES: ${RAG_RERANK_CANDIDATES:-20}
+      RAG_CATEGORY_FILTER: ${RAG_CATEGORY_FILTER:-true}
+    volumes:
+      # The index manifest carries the BM25 table the corpus was indexed with.
+      # Query-time encoding must use that exact table, so it is mounted rather
+      # than baked into the image.
+      - ./data/rag:/data/rag:ro
+    expose:
+      - "8000"
+    depends_on:
+      qdrant:
+        condition: service_started
+      ollama:
+        condition: service_started
+
+  # Python execution stays outside the agent container. The slim image has no
+  # runtime package installer, Docker socket, or host filesystem mounts.
+  open-terminal:
+    image: ghcr.io/open-webui/open-terminal:0.11.34-slim
+    environment:
+      OPEN_TERMINAL_API_KEY: ${OPEN_TERMINAL_API_KEY:-local-open-terminal-change-me}
+      OPEN_TERMINAL_EXECUTE_TIMEOUT: ${CODE_INTERPRETER_TIMEOUT:-15}
+      OPEN_TERMINAL_FILE_BROWSER_ROOT: home
+    expose:
+      - "8000"
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777,noexec,nosuid,nodev
+      - /home:size=128m,mode=0755,nosuid,nodev
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    # The image starts as root only long enough to drop to its unprivileged
+    # runtime user. No other Linux capabilities are retained.
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+    pids_limit: 128
+    mem_limit: 512m
+    cpus: 1.0
+    # Only the agent can reach the interpreter. The internal network has no
+    # external route, so generated Python cannot use Open Terminal for egress.
+    networks:
+      - interpreter
+
+  agent:
+    build:
+      context: ../agents/custom
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+      MODEL_PROVIDER: ${MODEL_PROVIDER:-litellm}
+      MODEL_ID: ${MODEL_ID:-}
+      OLLAMA_MODEL_ID: ${OLLAMA_MODEL_ID:-qwen3:1.7b}
+      OLLAMA_WARMUP_ENABLED: ${OLLAMA_WARMUP_ENABLED:-false}
+      OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:-10m}
+      KIMI_MODEL_ID: ${KIMI_MODEL_ID:-kimi-k2.6}
+      KIMI_BASE_URL: ${KIMI_BASE_URL:-https://api.moonshot.ai/v1}
+      KIMI_API_KEY: ${KIMI_API_KEY:-}
+      KIMI_TEMPERATURE: ${KIMI_TEMPERATURE:-1}
+      KIMI_TIMEOUT: ${KIMI_TIMEOUT:-60}
+      KIMI_MAX_TOKENS: ${KIMI_MAX_TOKENS:-}
+      LITELLM_ROUTER_MODEL_ID: ${LITELLM_ROUTER_MODEL_ID:-opensource-auto-router}
+      LITELLM_ROUTER_SESSION_TTL_SECONDS: ${LITELLM_ROUTER_SESSION_TTL_SECONDS:-600}
+      MAX_TOOL_CALLS: ${MAX_TOOL_CALLS:-12}
+      MCP_URL: http://mcp-tools:8000/mcp
+      BOOKING_MCP_URL: ${BOOKING_MCP_URL:-https://mcp.rapidapi.com}
+      RAPIDAPI_HOST: ${RAPIDAPI_HOST:-booking-com15.p.rapidapi.com}
+      RAPIDAPI_KEY: ${RAPIDAPI_KEY:-}
+      AERODATABOX_MCP_URL: ${AERODATABOX_MCP_URL:-https://mcp.rapidapi.com}
+      AERODATABOX_RAPIDAPI_HOST: ${AERODATABOX_RAPIDAPI_HOST:-aerodatabox.p.rapidapi.com}
+      AERODATABOX_RAPIDAPI_KEY: ${AERODATABOX_RAPIDAPI_KEY:-}
+      AIR_SCRAPER_MCP_URL: ${AIR_SCRAPER_MCP_URL:-https://mcp.rapidapi.com}
+      AIR_SCRAPER_RAPIDAPI_HOST: ${AIR_SCRAPER_RAPIDAPI_HOST:-sky-scrapper.p.rapidapi.com}
+      AIR_SCRAPER_RAPIDAPI_KEY: ${AIR_SCRAPER_RAPIDAPI_KEY:-}
+      GEOAPIFY_MCP_URL: ${GEOAPIFY_MCP_URL:-https://api.geoapify.com/v1/mcp}
+      GEOAPIFY_API_KEY: ${GEOAPIFY_API_KEY:-}
+      OPEN_TERMINAL_URL: http://open-terminal:8000
+      OPEN_TERMINAL_API_KEY: ${OPEN_TERMINAL_API_KEY:-local-open-terminal-change-me}
+      CODE_INTERPRETER_TIMEOUT: ${CODE_INTERPRETER_TIMEOUT:-15}
+      CODE_INTERPRETER_MAX_CODE_CHARS: ${CODE_INTERPRETER_MAX_CODE_CHARS:-20000}
+      CODE_INTERPRETER_MAX_OUTPUT_CHARS: ${CODE_INTERPRETER_MAX_OUTPUT_CHARS:-12000}
+      CODE_INTERPRETER_MAX_ATTACHMENT_BYTES: ${CODE_INTERPRETER_MAX_ATTACHMENT_BYTES:-1048576}
+      # Deterministic guardrails run locally before model and tool calls.
+      GUARDRAILS_ENABLED: ${GUARDRAILS_ENABLED:-true}
+      GUARDRAIL_MAX_PROMPT_CHARS: ${GUARDRAIL_MAX_PROMPT_CHARS:-12000}
+      # Observability is part of the default stack. Set either value to an
+      # empty string in .env to disable that export path in the agent:
+      #   OTEL_EXPORTER_OTLP_ENDPOINT=
+      #   MLFLOW_TRACKING_URI=
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT-http://otel-collector:4318}
+      OTEL_SERVICE_NAME: opensource-custom-agent
+      # SDK traces go to the bundled MLflow service by default.
+      MLFLOW_TRACKING_URI: ${MLFLOW_TRACKING_URI-http://mlflow:5000}
+      OPENSOURCE_AGENT_VERSION: ${OPENSOURCE_AGENT_VERSION:-v3}
+      MLFLOW_ACTIVE_MODEL_NAME: ${MLFLOW_ACTIVE_MODEL_NAME:-opensource-custom-agent-v3}
+      MLFLOW_LOG_MODEL_PARAMS: ${MLFLOW_LOG_MODEL_PARAMS:-true}
+      # The OTLP endpoint above belongs to the Strands exporter. Without this
+      # flag, MLflow's SDK sees it and reroutes its own spans over OTLP
+      # (gRPC exporter, not installed) instead of logging to the tracking
+      # server — no chat_completion traces at all.
+      MLFLOW_ENABLE_OTLP_EXPORTER: "false"
+      # Anything OTLP that does run (e.g. MLflow's metric export triggered by
+      # the endpoint env) must use the http exporter — only
+      # opentelemetry-exporter-otlp-proto-http is installed, and the default
+      # protocol is grpc.
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      # Local conversation history: JSON session files under this dir, keyed
+      # by the session_id the UI sends (the same id that groups MLflow
+      # traces). No external service involved. Empty = stateless.
+      SESSIONS_DIR: /data/sessions
+      # Shared secret required on /invocations (X-API-Key or Bearer). Set it
+      # in opensource/compose/.env; the ui service sends the same value.
+      # Empty = auth off.
+      API_KEY: ${API_KEY:-}
+    volumes:
+      - agent-sessions:/data/sessions
+    expose:
+      - "8080"
+    networks:
+      - default
+      - interpreter
+    depends_on:
+      ollama:
+        condition: service_started
+      mcp-tools:
+        condition: service_started
+      open-terminal:
+        condition: service_started
+      mlflow:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+
+  ui:
+    build:
+      context: ../..
+      dockerfile: opensource/ui/Dockerfile
+    environment:
+      OPENSOURCE_AGENT_URL: http://agent:8080
+      API_KEY: ${API_KEY:-}
+      # Login users (opensource/ui/auth.py CLI writes this file; gitignored).
+      # Missing/empty file = login screen off.
+      UI_USERS_FILE: /data/auth/users.json
+    volumes:
+      - ../ui/auth:/data/auth:ro
+    ports:
+      - "8501:8501"
+    depends_on:
+      - agent
+
+  # Observability is part of the default stack.
+  mlflow:
+    # MLflow 3.10+ includes `mlflow migrate-filestore`; the server still uses
+    # the durable SQLite database and artifact directory mounted at /data.
+    # Built from the stock v3.14.0 image plus litellm — see mlflow/Dockerfile.
+    build: ./mlflow
+    ports:
+      - "5000:5000"
+    environment:
+      # MLflow 3.x rejects non-localhost Host headers (DNS-rebinding guard).
+      # The collector reaches it as "mlflow:5000" on the compose network, but
+      # the UI is also opened from the host through whatever address the
+      # platform forwards (WSL2 VM IP, LAN IP, Codespaces URL), and any of
+      # those trips the guard. This stack is machine-local, so the check is
+      # off. Restrict it to an explicit host list before exposing MLflow
+      # beyond the local machine:
+      #   MLFLOW_SERVER_ALLOWED_HOSTS: "localhost,localhost:*,mlflow,mlflow:*,<your-host>,<your-host>:*"
+      MLFLOW_SERVER_ALLOWED_HOSTS: ${MLFLOW_SERVER_ALLOWED_HOSTS:-*}
+      # Optional judge-model credentials for MLflow GenAI judges. The eval
+      # scripts register Kimi as an OpenAI-compatible judge by default.
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-${KIMI_API_KEY:-}}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-${KIMI_BASE_URL:-https://api.moonshot.ai/v1}}
+    # sqlite backend (not the default file store): required by the v3 trace
+    # API the agent's SDK logs through, and by the prompt registry; the named
+    # volume keeps traces/prompts across container recreation.
+    command: mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri sqlite:////data/mlflow.db --artifacts-destination /data/artifacts
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/health', timeout=2)"
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 20s
+    volumes:
+      # Bind-mounted state survives container recreation, Compose project-name
+      # changes, and `docker compose down -v`.
+      - ./data/mlflow:/data
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.120.0
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ../../infrastructure/otel/collector-config.local.yaml:/etc/otelcol/config.yaml:ro
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+    environment:
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+      MLFLOW_EXPERIMENT_ID: "0"
+    depends_on:
+      - mlflow
+
+volumes:
+  ollama:
+  agent-sessions:
+  qdrant:
+  neo4j:
+  reranker-models:
+
+networks:
+  interpreter:
+    internal: true

@@ -1,0 +1,146 @@
+{
+  "name": "travel_rag_queries",
+  "version": "1",
+  "description": "Retrieval checks for the Wikivoyage travel corpus. A case passes when a result in the top k matches `accept` (an entity name that is a correct answer) or `accept_category` (any listing of that category, for questions with no single right answer). Ground truth is authored, not derived, so it encodes judgement about what a traveller means.",
+  "queries": [
+    {
+      "query": "museums and art galleries",
+      "destination": "Paris",
+      "accept": [
+        "Musée du Louvre",
+        "The Louvre",
+        "Musée d'Orsay",
+        "Centre Georges Pompidou",
+        "Musée des Arts décoratifs"
+      ],
+      "note": "broad category query; any major Paris museum is acceptable"
+    },
+    {
+      "query": "where can I see impressionist paintings",
+      "destination": "Paris",
+      "accept": [
+        "Musée d'Orsay",
+        "Musée Marmottan-Monet",
+        "Musée de l'Orangerie",
+        "L'Orangerie"
+      ]
+    },
+    {
+      "query": "Napoleon's tomb",
+      "destination": "Paris",
+      "accept": [
+        "Musée de l'Armée",
+        "Les Invalides"
+      ]
+    },
+    {
+      "query": "medieval tapestries and the Lady and the Unicorn",
+      "destination": "Paris",
+      "accept": [
+        "Musée national du Moyen Âge",
+        "Musée National Du Moyen Âge"
+      ]
+    },
+    {
+      "query": "museum dedicated to a famous sculptor",
+      "destination": "Paris",
+      "accept": [
+        "Musée Rodin"
+      ]
+    },
+    {
+      "query": "museums and art galleries",
+      "destination": "Barcelona",
+      "accept": [
+        "National Art Museum of Catalonia",
+        "Fundació Joan Miró",
+        "Barcelona Museum of Contemporary Art",
+        "Museu d'Història de la Ciutat de Barcelona",
+        "Picasso Museum"
+      ],
+      "note": "broad category query"
+    },
+    {
+      "query": "Gaudi architecture",
+      "destination": "Barcelona",
+      "accept": [
+        "Casa Batlló",
+        "Casa Milà",
+        "Casa Vicens",
+        "Sagrada Família",
+        "Park Güell"
+      ]
+    },
+    {
+      "query": "the football stadium",
+      "destination": "Barcelona",
+      "accept": [
+        "Camp Nou"
+      ]
+    },
+    {
+      "query": "Joan Miro artwork",
+      "destination": "Barcelona",
+      "accept": [
+        "Fundació Joan Miró"
+      ]
+    },
+    {
+      "query": "museums and art galleries",
+      "destination": "Lisbon",
+      "accept": [
+        "Calouste Gulbenkian Museum",
+        "Centro de Arte Moderna",
+        "Museu Nacional de Arte Antiga",
+        "Museu Nacional do Azulejo",
+        "Centro Cultural de Belém"
+      ],
+      "note": "Lisbon sections do not use a Museums heading; exercises the route fallback"
+    },
+    {
+      "query": "the castle overlooking the city",
+      "destination": "Lisbon",
+      "accept": [
+        "Castelo de São Jorge"
+      ]
+    },
+    {
+      "query": "historic aqueduct",
+      "destination": "Lisbon",
+      "accept": [
+        "Aqueduto das Aguas Livres"
+      ]
+    },
+    {
+      "query": "where should I eat",
+      "destination": "Lisbon",
+      "note": "No single right answer; any restaurant listing is correct. Naming specific restaurants would score the corpus on the author's picks.",
+      "accept_category": "restaurants"
+    },
+    {
+      "query": "the great mosque",
+      "destination": "Casablanca",
+      "accept": [
+        "King Hassan II Mosque"
+      ]
+    },
+    {
+      "query": "art galleries",
+      "destination": "Casablanca",
+      "accept": [
+        "Loft Art Gallery",
+        "Villa des Arts",
+        "Galerie Shart",
+        "Galérie Nadar",
+        "Galérie d'art l'Atelier 21"
+      ]
+    },
+    {
+      "query": "the famous cafe from the film",
+      "destination": "Casablanca",
+      "accept": [
+        "Rick's Cafe"
+      ]
+    }
+  ]
+}

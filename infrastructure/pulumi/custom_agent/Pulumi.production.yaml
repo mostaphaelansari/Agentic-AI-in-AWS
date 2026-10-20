@@ -1,0 +1,18 @@
+config:
+  aws:region: eu-west-1
+  agentic-blueprint-custom-agent:gateway_stack: mostaphaelansari/agentic-blueprint-gateway/production
+  agentic-blueprint-custom-agent:runtime_name: custom_agent_runtime
+  agentic-blueprint-custom-agent:ecr_repository_name: bedrock-agentcore-agent
+  agentic-blueprint-custom-agent:execution_role_arn: arn:aws:iam::554025156005:role/AmazonBedrockAgentCoreSDKRuntime-eu-west-1-d4f0bc5a29
+  agentic-blueprint-custom-agent:offload_bucket: bedrock-agentcore-d-artifacts-554025156005
+  agentic-blueprint-custom-agent:skills_bucket: agentic-blueprint-harness-skills-554025156005-eu-central-1
+  agentic-blueprint-custom-agent:model_id: eu.anthropic.claude-sonnet-4-6
+  agentic-blueprint-custom-agent:cheap_model_id: eu.anthropic.claude-haiku-4-5-20251001-v1:0
+  agentic-blueprint-custom-agent:image_uri: 554025156005.dkr.ecr.eu-west-1.amazonaws.com/bedrock-agentcore-agent:router-20260812-model-routing
+  agentic-blueprint-custom-agent:gateway_policy_name: InvokeGateway-eu-central-1-benchma-open-meteo-pb9jwtynsj
+  agentic-blueprint-custom-agent:enable_code_interpreter: "true"
+  agentic-blueprint-custom-agent:max_tool_calls: 12
+  agentic-blueprint-custom-agent:bedrock_max_tokens: 4096
+  agentic-blueprint-custom-agent:bedrock_prompt_id: TD09N3OI5K
+  agentic-blueprint-custom-agent:bedrock_prompt_version: "18"
+  agentic-blueprint-custom-agent:bedrock_prompt_sha256: 6069a1046d75e5c6c70d2d515cd8929c82fb1881458c1463871984a6c8333a9b

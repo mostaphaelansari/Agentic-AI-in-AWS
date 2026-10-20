@@ -1,0 +1,647 @@
+{
+  "policy_version": "value-maxxing-bootstrap-v1",
+  "seed": 20260813,
+  "query_count": 7212,
+  "routing_record_count": 14424,
+  "split_counts": {
+    "test": 720,
+    "train": 5772,
+    "validation": 720
+  },
+  "label_counts": {
+    "cheap": 3604,
+    "strong": 3608
+  },
+  "domain_counts": {
+    "general": 803,
+    "protein": 3204,
+    "travel": 3205
+  },
+  "family_count": 36,
+  "measured_record_count": 0,
+  "warning": "Bootstrap policy utilities are synthetic and must be replaced with measured model evaluations before production promotion.",
+  "scenarios": [
+    {
+      "domain": "travel",
+      "family": "weather",
+      "cheap": [
+        "Check the current weather in {destination}.",
+        "What is the forecast for {destination} on {date}?",
+        "Tell me whether rain is expected in {destination} {date}."
+      ],
+      "strong": [
+        "Compare weather in {destination} and {alt_destination} across {duration}, then optimize a day-by-day outdoor plan for {travelers}.",
+        "Reconcile the forecasts for {destination} and {alt_destination}, explain uncertainty, and recommend which destination better fits {activity} on {date}.",
+        "Build a weather-resilient {duration} plan for {destination} with indoor alternatives, packing decisions, and explicit assumptions."
+      ],
+      "cheap_rationale": "A single bounded weather lookup is adequately handled by the economical model.",
+      "strong_rationale": "Multi-location synthesis and contingency planning raise the quality requirement.",
+      "strong_risk": "medium"
+    },
+    {
+      "domain": "travel",
+      "family": "nearby_places",
+      "cheap": [
+        "Find three {place_type} near {landmark}.",
+        "List a few {place_type} around {landmark} in {destination}.",
+        "What {place_type} are close to {landmark}?"
+      ],
+      "strong": [
+        "Research {place_type} near {landmark}, verify current visitor details, compare walking routes, and choose the best option for {travelers} with {accessibility}.",
+        "Design a two-hour route around {landmark} combining {place_type} and {activity}; reconcile map and official-source information.",
+        "Evaluate the safest and most practical {place_type} near {landmark} for {travelers}, including accessibility and current-hours uncertainty."
+      ],
+      "cheap_rationale": "Nearby-place discovery with a short list is a bounded retrieval task.",
+      "strong_rationale": "Route optimization and source reconciliation require stronger synthesis.",
+      "strong_risk": "medium"
+    },
+    {
+      "domain": "travel",
+      "family": "flight_status",
+      "cheap": [
+        "Check the status of flight {flight} on {date}.",
+        "What are the local departure and arrival times for {flight} {date}?",
+        "Is {flight} delayed? Report only what the live data says."
+      ],
+      "strong": [
+        "Flight {flight} may be disrupted on {date}; assess connection risk, compare recovery options, and clearly separate live facts from assumptions.",
+        "Analyze whether {travelers} can make a {connection_minutes}-minute connection after {flight}, accounting for terminal changes and uncertain operational data.",
+        "Create a disruption decision tree for {flight} with rebooking alternatives, time-zone handling, and escalation points."
+      ],
+      "cheap_rationale": "Reporting one flight's returned status is a narrow tool-grounded task.",
+      "strong_rationale": "Disruption and connection decisions combine uncertain, consequential constraints.",
+      "strong_risk": "high"
+    },
+    {
+      "domain": "travel",
+      "family": "flight_search",
+      "cheap": [
+        "Find flight options from {origin} to {destination} on {date}; do not book anything.",
+        "Show three flight-search leads between {origin} and {destination} for {date}.",
+        "Search for a one-way flight from {origin} to {destination} on {date}."
+      ],
+      "strong": [
+        "Compare multi-city flight strategies from {origin} through {alt_destination} to {destination} for {travelers}, balancing {budget}, duration, baggage uncertainty, and missed-connection risk.",
+        "Find and critically compare flight options from {origin} to {destination} across {date}, including tradeoffs among price, stops, local times, and refund uncertainty.",
+        "Plan robust flight alternatives for {travelers} from {origin} to {destination} under {budget}, with explicit fallback logic if the preferred itinerary disappears."
+      ],
+      "cheap_rationale": "A single search with a few leads is bounded and reversible.",
+      "strong_rationale": "Multi-leg optimization has interacting costs, times, and operational risks.",
+      "strong_risk": "medium"
+    },
+    {
+      "domain": "travel",
+      "family": "hotels",
+      "cheap": [
+        "Find hotel leads near {landmark} under {budget} per night; do not reserve.",
+        "List three stays in {destination} for {travelers} on {date}.",
+        "Search for accommodation around {neighborhood} in {destination}."
+      ],
+      "strong": [
+        "Compare hotels across {neighborhood} and {alt_neighborhood} for {travelers}, weighing total price, cancellation uncertainty, transit, {accessibility}, and neighborhood fit.",
+        "Research where to stay in {destination} under {budget}, verify current claims, and defend a recommendation for a {duration} trip focused on {activity}.",
+        "Build a hotel shortlist for {travelers} in {destination}, detect hidden tradeoffs in taxes and policies, and provide a risk-aware recommendation without claiming a reservation."
+      ],
+      "cheap_rationale": "Returning accommodation leads is a standard retrieval task.",
+      "strong_rationale": "A defensible stay decision requires multi-criteria comparison and caveats.",
+      "strong_risk": "medium"
+    },
+    {
+      "domain": "travel",
+      "family": "itinerary",
+      "cheap": [
+        "Draft a simple one-day sightseeing outline for {destination}.",
+        "Give me a short morning-and-afternoon plan around {landmark}.",
+        "List a basic day trip in {destination} focused on {activity}."
+      ],
+      "strong": [
+        "Plan a detailed {duration} trip to {destination} for {travelers} under {budget}, coordinating flights, hotels, weather, transit, {activity}, and realistic recovery time.",
+        "Design and justify a day-by-day {duration} itinerary for {destination} that resolves competing interests, {accessibility}, live-data uncertainty, and travel time.",
+        "Create an in-depth itinerary for {destination} and explain why each day is sequenced that way, with alternatives for closures, bad weather, and fatigue."
+      ],
+      "cheap_rationale": "A low-constraint day outline is acceptable from the economical model.",
+      "strong_rationale": "A multi-day itinerary is a long-horizon orchestration and reasoning task.",
+      "strong_risk": "medium"
+    },
+    {
+      "domain": "travel",
+      "family": "budget_math",
+      "cheap": [
+        "Split a {budget} travel budget equally across {days} days.",
+        "Add these trip costs: {cost_a}, {cost_b}, and {cost_c} euros.",
+        "Convert a total of {total_cost} euros for {travelers} into a per-person amount."
+      ],
+      "strong": [
+        "Optimize a {budget} budget for {travelers} over {duration} in {destination}, model uncertain transport and lodging prices, and explain the opportunity costs.",
+        "Analyze the uploaded travel-cost assumptions, identify outliers and missing categories, then produce a justified budget with sensitivity ranges.",
+        "Compare three budget allocations for {destination} and recommend one after stress-testing exchange-rate, hotel, and flight-price changes."
+      ],
+      "cheap_rationale": "Simple deterministic arithmetic does not require the strongest model.",
+      "strong_rationale": "Budget optimization and sensitivity analysis require deeper reasoning.",
+      "strong_risk": "medium"
+    },
+    {
+      "domain": "travel",
+      "family": "packing",
+      "cheap": [
+        "Give me a short packing list for {destination} on {date}.",
+        "What should I pack for {activity} in {destination}?",
+        "List basic clothing for a {duration} visit to {destination}."
+      ],
+      "strong": [
+        "Create a risk-aware packing strategy for {duration} across {destination} and {alt_destination}, accounting for forecast uncertainty, {activity}, baggage limits, and {accessibility}.",
+        "Explain in depth how climate, local norms, and planned activities should change the packing list for {travelers} visiting {destination} on {date}.",
+        "Reconcile conflicting weather signals and design a minimal packing list with contingency items and a clear decision rationale."
+      ],
+      "cheap_rationale": "A generic packing checklist is low-risk and bounded.",
+      "strong_rationale": "Cross-climate optimization and uncertainty management need stronger reasoning.",
+      "strong_risk": "medium"
+    },
+    {
+      "domain": "travel",
+      "family": "routing_maps",
+      "cheap": [
+        "Show a walking route from {landmark} to {second_landmark}.",
+        "How far is {landmark} from {second_landmark} in {destination}?",
+        "Find {landmark} on the map and list nearby transit."
+      ],
+      "strong": [
+        "Compare walking, public-transit, and accessible routes between {landmark} and {second_landmark}, then recommend a plan under uncertain live conditions.",
+        "Design an efficient route through {landmark}, {second_landmark}, and nearby {place_type}, respecting {accessibility} and a two-hour limit.",
+        "Assess route safety and practicality for {travelers} across multiple stops in {destination}; explain assumptions and fallback options."
+      ],
+      "cheap_rationale": "One route lookup or distance report is a simple tool task.",
+      "strong_rationale": "Multi-stop accessible routing adds consequential constraints.",
+      "strong_risk": "medium"
+    },
+    {
+      "domain": "travel",
+      "family": "travel_data",
+      "cheap": [
+        "Sort these destination scores and return the top three: {score_list}.",
+        "Calculate the average daily cost from {cost_list}.",
+        "Summarize the highest and lowest values in this small travel table: {score_list}."
+      ],
+      "strong": [
+        "Analyze the travel dataset for bias, missing values, outliers, and misleading correlations, then defend the most decision-useful visualization.",
+        "Build an in-depth comparison from the uploaded CSV, validate calculations, segment traveler types, and explain uncertainty in the recommendation.",
+        "Audit the methodology behind these destination rankings and determine whether the claimed winner is robust to weighting changes."
+      ],
+      "cheap_rationale": "Small transparent calculations and sorting are economical-model tasks.",
+      "strong_rationale": "Data auditing, robustness, and methodological critique require Sonnet.",
+      "strong_risk": "medium"
+    },
+    {
+      "domain": "travel",
+      "family": "entry_requirements",
+      "cheap": [
+        "Point me to the official page for entry requirements for {destination}.",
+        "Find the official visa-information source for travel to {destination}.",
+        "Which official authority publishes entry rules for {destination}?"
+      ],
+      "strong": [
+        "Assess current entry and transit requirements for a complex trip from {origin} through {alt_destination} to {destination}; cite official sources and flag legal uncertainty.",
+        "Explain how passport validity, transit rules, and changing entry requirements could affect {travelers} traveling to {destination} on {date}.",
+        "Reconcile conflicting official guidance about entry to {destination} and state what must be confirmed with the competent authority."
+      ],
+      "cheap_rationale": "Locating an official source is bounded; the answer must avoid interpretation.",
+      "strong_rationale": "Interpreting current entry rules is high-stakes and temporally sensitive.",
+      "strong_risk": "high"
+    },
+    {
+      "domain": "travel",
+      "family": "accessibility",
+      "cheap": [
+        "Find wheelchair-accessibility information for {landmark} from an official source.",
+        "List accessible-transport contacts for {destination}.",
+        "Does {landmark} publish accessibility guidance?"
+      ],
+      "strong": [
+        "Plan an accessible {duration} visit to {destination} for {travelers}, validating step-free transport, hotel constraints, attraction access, rest periods, and fallback routes.",
+        "Critically assess whether a trip centered on {landmark} is practical with {accessibility}, distinguishing verified access facts from uncertain map data.",
+        "Design a detailed accessibility-first itinerary for {destination} and explain how each choice reduces mobility and fatigue risks."
+      ],
+      "cheap_rationale": "Retrieving an official accessibility page is a narrow task.",
+      "strong_rationale": "Accessibility planning is consequential and crosses multiple providers.",
+      "strong_risk": "high"
+    },
+    {
+      "domain": "travel",
+      "family": "privacy_and_booking",
+      "cheap": [
+        "Explain that you can search hotels but cannot complete a reservation.",
+        "Remove the email address from this trip note before summarizing it: {private_note}.",
+        "Tell the user what information is safe to share for a flight search."
+      ],
+      "strong": [
+        "Review this travel workflow for privacy risks, redact personal data, prevent accidental booking claims, and propose a safe sequence of actions: {private_note}.",
+        "A user supplied passenger and payment details while asking to book travel; produce a policy-safe response and explain the boundary without exposing the data.",
+        "Analyze a travel-agent transcript for privacy leakage, unauthorized purchase language, and unsafe handling of identifiers; prioritize remediation."
+      ],
+      "cheap_rationale": "A standard capability boundary or direct redaction is short and explicit.",
+      "strong_rationale": "Multiple privacy and authorization failures demand cautious policy reasoning.",
+      "strong_risk": "critical"
+    },
+    {
+      "domain": "travel",
+      "family": "disruptions",
+      "cheap": [
+        "Find the official service-alert page for transit in {destination}.",
+        "Check whether the airport for {destination} reports a disruption.",
+        "Give me the official source for current strikes in {destination}."
+      ],
+      "strong": [
+        "Build a robust contingency plan for {travelers} facing a possible strike in {destination} on {date}, separating verified alerts from speculation.",
+        "Analyze cascading risks from a delayed {flight}, a short connection, and the last train in {destination}; recommend decision thresholds.",
+        "Re-plan a {duration} trip after simultaneous flight and weather disruptions while preserving critical commitments and budget limits."
+      ],
+      "cheap_rationale": "Finding the authoritative alert endpoint is bounded retrieval.",
+      "strong_rationale": "Cascading disruptions require risk analysis and contingency reasoning.",
+      "strong_risk": "high"
+    },
+    {
+      "domain": "travel",
+      "family": "food_and_culture",
+      "cheap": [
+        "List three local dishes to try in {destination}.",
+        "Find a {cuisine} restaurant near {landmark}.",
+        "Name a few cultural attractions in {destination}."
+      ],
+      "strong": [
+        "Design a {duration} food-and-culture itinerary in {destination} for {travelers}, balancing reservations, geography, dietary needs, live hours, and cultural context.",
+        "Compare {destination} and {alt_destination} for {activity}, using current sources and defending the recommendation against plausible counterarguments.",
+        "Research an in-depth cultural route around {landmark}, verify sensitive claims, and avoid flattening local history into generic tourism advice."
+      ],
+      "cheap_rationale": "A short discovery list is low-risk and easy to verify.",
+      "strong_rationale": "A culturally grounded multi-day plan needs nuanced synthesis.",
+      "strong_risk": "medium"
+    },
+    {
+      "domain": "travel",
+      "family": "source_synthesis",
+      "cheap": [
+        "Summarize this official visitor notice in three bullets: {visitor_notice}",
+        "Extract the stated opening time from this notice: {visitor_notice}",
+        "Rewrite this travel alert in plain language: {visitor_notice}"
+      ],
+      "strong": [
+        "Reconcile conflicting current information from an official attraction page, a map listing, and a booking provider for {landmark}; explain which claims to trust and why.",
+        "Produce an in-depth, source-backed assessment of whether {landmark} fits the itinerary on {date}, including uncertainty and failure modes.",
+        "Critique the evidence behind competing travel recommendations for {destination} and produce a calibrated conclusion rather than a confident guess."
+      ],
+      "cheap_rationale": "Transformation of one supplied source is a bounded language task.",
+      "strong_rationale": "Conflicting-source adjudication benefits materially from Sonnet.",
+      "strong_risk": "medium"
+    },
+    {
+      "domain": "protein",
+      "family": "structure_counts",
+      "cheap": [
+        "Report the atom, chain, residue, and non-water ligand counts from this parsed summary: {structure_summary}.",
+        "Extract the chain count from this structure summary: {structure_summary}.",
+        "Return the residue total stated here: {structure_summary}."
+      ],
+      "strong": [
+        "Audit the mmCIF counting methodology for alternate locations, models, waters, and biological assemblies, then explain which atom and residue totals are defensible.",
+        "Analyze why two parsers disagree on counts for {pdb_id}; test competing definitions and recommend a reproducible counting policy.",
+        "Give an in-depth explanation of how mmCIF categories, polymer entities, and alternate conformers affect reported structure counts."
+      ],
+      "cheap_rationale": "Extracting explicit counts from a supplied summary is deterministic.",
+      "strong_rationale": "Disputed structural definitions and parser behavior need careful reasoning.",
+      "strong_risk": "medium"
+    },
+    {
+      "domain": "protein",
+      "family": "residue_display",
+      "cheap": [
+        "Show residues {start}-{end} in chain {chain} and color them by residue name.",
+        "Display only protein chain {chain} in the 3D viewer.",
+        "Add residue {residue_number} of chain {chain} to the current selection."
+      ],
+      "strong": [
+        "Design a layered structural view comparing residues {start}-{end} in chains {chain} and {chain2}, ligands, contacts, and uncertainty in identifier mapping.",
+        "Resolve ambiguous author-versus-label numbering before visualizing the functional region around {residue}{residue_number} in chain {chain}.",
+        "Create and justify a multi-layer view that highlights a putative binding network around {ligand} without implying unsupported causality."
+      ],
+      "cheap_rationale": "A direct viewer selection is a constrained command-generation task.",
+      "strong_rationale": "Ambiguous identifiers and functional overlays require stronger analysis.",
+      "strong_risk": "medium"
+    },
+    {
+      "domain": "protein",
+      "family": "ligands",
+      "cheap": [
+        "List the non-water ligands in {pdb_id} from this table: {ligand_table}.",
+        "Show ligand {ligand} and nearby residues within {distance} angstroms.",
+        "Count occurrences of {ligand} in this parsed ligand list: {ligand_table}."
+      ],
+      "strong": [
+        "Assess whether {ligand} is likely a functional ligand, crystallization additive, or artifact in {pdb_id}, integrating contacts, occupancy, literature context, and uncertainty.",
+        "Compare the binding environments of {ligand} across chains {chain} and {chain2} and explain which differences may be structurally meaningful.",
+        "Analyze the evidence for a ligand-mediated mechanism around {ligand}; separate observed contacts from speculative functional interpretation."
+      ],
+      "cheap_rationale": "Listing or selecting an explicitly identified ligand is bounded.",
+      "strong_rationale": "Functional ligand interpretation requires multi-evidence scientific reasoning.",
+      "strong_risk": "high"
+    },
+    {
+      "domain": "protein",
+      "family": "composition",
+      "cheap": [
+        "Calculate amino-acid frequencies for this short sequence: {sequence}.",
+        "What is the length of this protein sequence: {sequence}?",
+        "List which residue type is most common in {sequence}."
+      ],
+      "strong": [
+        "Compare residue composition across chains {chain} and {chain2}, control for sequence length and missing residues, and interpret the limits of any functional claim.",
+        "Analyze whether unusual composition in {sequence} supports disorder, membrane association, or another hypothesis; discuss confounders.",
+        "Give an in-depth compositional analysis that distinguishes sequence evidence from structural evidence and proposes validation steps."
+      ],
+      "cheap_rationale": "Simple sequence length and frequency calculations are deterministic.",
+      "strong_rationale": "Biological interpretation from composition is uncertain and nuanced.",
+      "strong_risk": "medium"
+    },
+    {
+      "domain": "protein",
+      "family": "chain_identifiers",
+      "cheap": [
+        "Extract the author and label chain identifiers from this mapping: {chain_mapping}.",
+        "Which label chain corresponds to author chain {chain} in {chain_mapping}?",
+        "Display author chain {chain} using the supplied identifier mapping: {chain_mapping}."
+      ],
+      "strong": [
+        "Reconcile author, label, entity, and assembly identifiers across an mmCIF file, detect ambiguous mappings, and specify a safe selection strategy.",
+        "Explain in depth why residue {residue_number} in author chain {chain} maps differently under label numbering and how to avoid selecting the wrong atoms.",
+        "Audit a cross-reference workflow that joins PDB chain identifiers to external annotations and identify silent mapping failure modes."
+      ],
+      "cheap_rationale": "Reading a supplied one-to-one mapping is a bounded extraction task.",
+      "strong_rationale": "Identifier reconciliation across schemas can silently corrupt analysis.",
+      "strong_risk": "high"
+    },
+    {
+      "domain": "protein",
+      "family": "charting",
+      "cheap": [
+        "Plot residue counts by chain from this small table: {chain_counts}.",
+        "Create a bar chart of ligand counts: {ligand_table}.",
+        "Return a compact chart specification for these chain lengths: {chain_counts}."
+      ],
+      "strong": [
+        "Choose and justify visualizations that expose missing residues, chain imbalance, and ligand-contact uncertainty without overstating the data.",
+        "Analyze the structure dataset, detect misleading aggregation choices, and design a multi-view chart that supports a defensible scientific conclusion.",
+        "Critique this proposed protein chart for statistical and perceptual failure modes, then provide a corrected specification and rationale."
+      ],
+      "cheap_rationale": "A chart from an explicit small table is mechanically bounded.",
+      "strong_rationale": "Visualization design under scientific uncertainty needs stronger judgment.",
+      "strong_risk": "medium"
+    },
+    {
+      "domain": "protein",
+      "family": "secondary_structure",
+      "cheap": [
+        "List the secondary-structure records explicitly present in this summary: {secondary_summary}.",
+        "Show the helix ranges reported for chain {chain}: {secondary_summary}.",
+        "Extract the sheet count from this parsed mmCIF annotation: {secondary_summary}."
+      ],
+      "strong": [
+        "Compare annotated and geometry-inferred secondary structure for {pdb_id}, investigate disagreements, and explain the confidence limits.",
+        "Analyze how mutation {mutation} could alter the local secondary-structure network while clearly separating hypothesis from evidence.",
+        "Provide an in-depth structural interpretation of secondary-structure changes across chains {chain} and {chain2}, including missing-coordinate bias."
+      ],
+      "cheap_rationale": "Extracting explicit structural annotations is straightforward.",
+      "strong_rationale": "Inferring structural changes and adjudicating methods is complex science.",
+      "strong_risk": "high"
+    },
+    {
+      "domain": "protein",
+      "family": "binding_site",
+      "cheap": [
+        "List residues within {distance} angstroms of {ligand} from this contact table: {contact_table}.",
+        "Show the reported contacts for ligand {ligand}: {contact_table}.",
+        "Count polar contacts in this supplied binding-site table: {contact_table}."
+      ],
+      "strong": [
+        "Characterize the binding site around {ligand}, integrate geometry, conservation, waters, alternate conformers, and uncertainty, then propose testable hypotheses.",
+        "Compare two plausible binding poses for {ligand} and explain which evidence would discriminate between them without claiming docking certainty.",
+        "Analyze whether residues {residue}{residue_number} and {residue2}{residue_number2} form a meaningful interaction network or a crystallographic coincidence."
+      ],
+      "cheap_rationale": "Reading a supplied contact table is bounded extraction.",
+      "strong_rationale": "Binding-site interpretation combines several uncertain evidence sources.",
+      "strong_risk": "high"
+    },
+    {
+      "domain": "protein",
+      "family": "mutation_effect",
+      "cheap": [
+        "Rewrite mutation notation {mutation} in plain language.",
+        "Identify the wild-type and substituted residues in {mutation}.",
+        "Show residue {residue_number} in chain {chain} for mutation {mutation}."
+      ],
+      "strong": [
+        "Assess the possible structural impact of {mutation} using local contacts, conservation, solvent exposure, and model uncertainty; do not present a clinical conclusion.",
+        "Compare competing mechanistic hypotheses for {mutation} and design computational and experimental checks that could falsify them.",
+        "Explain in depth whether {mutation} may alter ligand binding, distinguishing direct structural evidence from general biochemical intuition."
+      ],
+      "cheap_rationale": "Parsing mutation notation or selecting its residue is simple.",
+      "strong_rationale": "Mutation-effect inference is uncertain and potentially consequential.",
+      "strong_risk": "high"
+    },
+    {
+      "domain": "protein",
+      "family": "contact_network",
+      "cheap": [
+        "Count contacts in this small residue-contact list: {contact_table}.",
+        "List the neighbors of {residue}{residue_number}: {contact_table}.",
+        "Sort these residue contacts by distance: {contact_table}."
+      ],
+      "strong": [
+        "Analyze the residue-contact network for central nodes, test sensitivity to distance cutoff and missing atoms, and interpret results conservatively.",
+        "Compare contact-network changes between chains {chain} and {chain2} and determine which differences survive alternate-location and resolution uncertainty.",
+        "Design and justify a graph analysis of allosteric paths from {ligand} to {residue}{residue_number}, including negative controls."
+      ],
+      "cheap_rationale": "Small contact-list transformations are deterministic.",
+      "strong_rationale": "Network robustness and allosteric interpretation require deep reasoning.",
+      "strong_risk": "medium"
+    },
+    {
+      "domain": "protein",
+      "family": "structure_quality",
+      "cheap": [
+        "Extract the resolution value from this structure summary: {quality_summary}.",
+        "Report the R-free value stated here: {quality_summary}.",
+        "List missing-residue ranges from this parsed quality table: {quality_summary}."
+      ],
+      "strong": [
+        "Evaluate whether {pdb_id} supports the proposed atomic interpretation using resolution, R factors, occupancy, B factors, missing residues, and local density caveats.",
+        "Reconcile conflicting global and local quality indicators for the region around {residue}{residue_number} and calibrate confidence in downstream claims.",
+        "Provide an in-depth critique of structural model quality and explain which conclusions remain robust despite uncertainty."
+      ],
+      "cheap_rationale": "Extracting one reported quality field is simple.",
+      "strong_rationale": "Combining quality indicators into calibrated scientific confidence is hard.",
+      "strong_risk": "high"
+    },
+    {
+      "domain": "protein",
+      "family": "file_validation",
+      "cheap": [
+        "Does this filename have a supported mmCIF extension: {filename}?",
+        "List the missing required columns in this tiny table: {column_list}.",
+        "Normalize this uploaded structure filename: {filename}."
+      ],
+      "strong": [
+        "Diagnose why this mmCIF parses differently across tools, identify schema and encoding failure modes, and propose a non-destructive validation workflow.",
+        "Audit an uploaded structure for malformed loops, inconsistent identifiers, duplicate atoms, and unsafe assumptions before analysis.",
+        "Explain in depth how to recover partial scientific value from a corrupted mmCIF while preserving provenance and uncertainty."
+      ],
+      "cheap_rationale": "Extension checks and explicit column validation are deterministic.",
+      "strong_rationale": "Parser disagreement and partial recovery require careful diagnosis.",
+      "strong_risk": "medium"
+    },
+    {
+      "domain": "protein",
+      "family": "structural_alignment",
+      "cheap": [
+        "Report the RMSD stated in this alignment summary: {alignment_summary}.",
+        "Extract the aligned-residue count from {alignment_summary}.",
+        "Which chains were aligned in this supplied result: {alignment_summary}?"
+      ],
+      "strong": [
+        "Compare structures {pdb_id} and {pdb_id2}, justify the alignment method and atom selection, inspect domain motion, and explain why a single RMSD may mislead.",
+        "Assess whether chains {chain} and {chain2} share a meaningful conformation after controlling for missing regions, alternate states, and alignment bias.",
+        "Design an in-depth structural comparison that separates rigid-body motion, local rearrangement, and differences caused by model quality."
+      ],
+      "cheap_rationale": "Extracting fields from an existing alignment result is bounded.",
+      "strong_rationale": "Choosing and interpreting an alignment requires advanced reasoning.",
+      "strong_risk": "medium"
+    },
+    {
+      "domain": "protein",
+      "family": "assembly_and_symmetry",
+      "cheap": [
+        "List the assembly identifiers stated in this summary: {assembly_summary}.",
+        "Extract the number of symmetry operators from {assembly_summary}.",
+        "Show the asymmetric-unit chains listed here: {assembly_summary}."
+      ],
+      "strong": [
+        "Determine whether the reported interface is likely biological or crystallographic by integrating assembly annotations, symmetry, interface area, and external evidence.",
+        "Explain in depth how the asymmetric unit, biological assembly, and crystal symmetry change the interpretation of contacts in {pdb_id}.",
+        "Compare competing assembly hypotheses for {pdb_id} and state what evidence would resolve them."
+      ],
+      "cheap_rationale": "Reading explicit assembly metadata is a simple extraction task.",
+      "strong_rationale": "Biological-assembly inference is scientifically nuanced.",
+      "strong_risk": "high"
+    },
+    {
+      "domain": "protein",
+      "family": "scientific_evidence",
+      "cheap": [
+        "Summarize this supplied protein-method paragraph in three bullets: {method_note}",
+        "Extract the stated limitation from this paragraph: {method_note}",
+        "Rewrite this structural observation without causal language: {method_note}"
+      ],
+      "strong": [
+        "Critically evaluate the evidence for the claimed protein mechanism, separate observation from inference, identify alternative explanations, and propose decisive tests.",
+        "Reconcile structural, biochemical, and sequence evidence that disagree about the role of {residue}{residue_number}; calibrate the conclusion.",
+        "Produce an in-depth peer-review-style critique of a mechanistic claim based on one structure, including reproducibility and generalization risks."
+      ],
+      "cheap_rationale": "Transforming one supplied paragraph is bounded language work.",
+      "strong_rationale": "Scientific evidence adjudication demands nuanced, skeptical reasoning.",
+      "strong_risk": "high"
+    },
+    {
+      "domain": "protein",
+      "family": "clinical_boundary",
+      "cheap": [
+        "State that a protein-structure visualization is not a medical diagnosis.",
+        "Rewrite this result as a research observation rather than clinical advice: {clinical_note}",
+        "Identify the sentence that overstates clinical certainty: {clinical_note}"
+      ],
+      "strong": [
+        "Respond safely to a request for treatment advice based only on mutation {mutation} and one predicted structure; explain evidence limits and appropriate expert follow-up.",
+        "Audit a variant-interpretation report for unsupported pathogenicity and treatment claims, then rewrite the conclusion with calibrated uncertainty.",
+        "Analyze conflicting structural and clinical evidence about {mutation} without making a diagnosis or recommendation, and identify what qualified review is needed."
+      ],
+      "cheap_rationale": "A direct disclaimer or rewrite has a clear bounded target.",
+      "strong_rationale": "Clinical interpretation is high-stakes and must be routed conservatively.",
+      "strong_risk": "critical"
+    },
+    {
+      "domain": "general",
+      "family": "conceptual_depth",
+      "cheap": [
+        "Define {concept} in one sentence.",
+        "Give a short plain-language meaning of {concept}.",
+        "Provide a concise glossary entry for {concept}."
+      ],
+      "strong": [
+        "Explain in depth the concept of {concept}, derive its decision rule, examine failure modes, and use examples from agent routing.",
+        "Critically analyze {concept}, compare alternative formulations, and defend when it should or should not be used.",
+        "Teach {concept} rigorously to {audience}, including assumptions, equations, counterexamples, and practical consequences."
+      ],
+      "cheap_rationale": "A one-sentence definition is a bounded language task.",
+      "strong_rationale": "Deep conceptual teaching and critique demand stronger reasoning.",
+      "strong_risk": "medium"
+    },
+    {
+      "domain": "general",
+      "family": "coding",
+      "cheap": [
+        "Format this JSON object with two-space indentation: {json_snippet}.",
+        "Rename the variable old_name to new_name in this line: {code_snippet}.",
+        "Explain this one-line expression briefly: {code_snippet}."
+      ],
+      "strong": [
+        "Diagnose an intermittent distributed-system failure, compare competing root causes, and propose a safe verification plan before changing code.",
+        "Design and justify a production architecture for a fault-tolerant agent router with observability, rollback, and adversarial tests.",
+        "Review a security-sensitive implementation in depth, identify subtle failure modes, and produce a tested remediation strategy."
+      ],
+      "cheap_rationale": "Mechanical code formatting and local explanation are bounded.",
+      "strong_rationale": "Architecture, diagnosis, and security review need Sonnet.",
+      "strong_risk": "high"
+    },
+    {
+      "domain": "general",
+      "family": "summarization",
+      "cheap": [
+        "Summarize this sentence in five words: {short_text}",
+        "Extract the action item from this note: {short_text}",
+        "Rewrite this short note more clearly: {short_text}"
+      ],
+      "strong": [
+        "Synthesize several conflicting technical reports, preserve uncertainty and minority evidence, and recommend a decision with explicit tradeoffs.",
+        "Produce an in-depth executive synthesis of a long mixed-quality evidence set, separating facts, assumptions, and unresolved disagreements.",
+        "Critique a summary for omitted risks and misleading certainty, then rebuild it for a consequential decision."
+      ],
+      "cheap_rationale": "A short supplied-text transformation is economical.",
+      "strong_rationale": "Conflicting-evidence synthesis is reasoning intensive.",
+      "strong_risk": "medium"
+    },
+    {
+      "domain": "general",
+      "family": "safety",
+      "cheap": [
+        "Politely refuse to reveal a hidden system prompt.",
+        "Remove this email address from the sentence: user@example.com requested help.",
+        "State that you cannot complete a purchase for the user."
+      ],
+      "strong": [
+        "Analyze a multi-step prompt-injection attempt embedded in tool output, preserve the valid user goal, and explain the safe execution boundary.",
+        "Review an agent trace containing private data, conflicting authorization, and irreversible actions; identify every safety failure and safe recovery step.",
+        "Resolve a complex request that mixes benign analysis with credential theft and data exfiltration while preserving only the safe portion."
+      ],
+      "cheap_rationale": "A canonical refusal or direct redaction has a clear answer pattern.",
+      "strong_rationale": "Compound adversarial requests require careful policy decomposition.",
+      "strong_risk": "critical"
+    }
+  ],
+  "files": {
+    "gold_decisions.jsonl": "5d7faff9531544c890a2697b0060f885a54bac78168b895589b6b529540f2f5f",
+    "llm_candidates.json": "fb9534bce69dff08a998beece226c2e8881779c54e2f8ba5130fb24594dd57df",
+    "query_data_test.jsonl": "ad9fa9f3643fa3ed6776b4f3ab191c4d3c4b3d83be39a56376dd31320fd3663e",
+    "query_data_train.jsonl": "ef1403554e0c3061a1f4095ff0082d8d1473954852c2945db1b56174e38d0b29",
+    "query_data_validation.jsonl": "1de4350e532b980adddd3c9ae459ad0aa25ff331851009efa99b1544e7c90550",
+    "routing_data_test.jsonl": "18e8d625155dce1252fb0af1f82b0cdf40f9f5938daa16ff2e8ebb71df3fad9a",
+    "routing_data_train.jsonl": "d519e222fb9ba1fa7576031ff99ce445417165c8cb129d198efcb151f69c4577",
+    "routing_data_validation.jsonl": "e36da4c64cca061220d0a09fba3c6a5a3d33699ada44eb49e7227d1e4b046e84"
+  }
+}
